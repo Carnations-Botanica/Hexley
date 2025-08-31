@@ -4,7 +4,11 @@
 
 # Hexley
 An Open Source and Modular psuedo Operating System. Badly modeled after XNU and allows using Discord as an interface. Allowing you to create a workspace, and a Discord Bot all in one!
+
 <br>
+<p align="center">
+  <img src="./assets/gallery/hexley_IDE.png" width="100%" height="100%">
+</p>
 <br>
 
 # Features
@@ -21,7 +25,7 @@ Besides the main points, it's oddly a really nice way to debug and test NodeJS/J
 </br>
 </br>
 
-<h3>You are currently viewing <code>Hexley Minimal</code>, which includes the following:</h3>
+<h3>You are currently viewing <code>Hexley Full</code>, which includes the following:</h3>
 </br>
 
 | Name | Type | Purpose | Commands |
