@@ -1,0 +1,76 @@
+import fs from 'fs';
+import path from 'path';
+
+/**
+ * The hmesg command source code, similar to dmesg.
+ */
+export const hmesg = {
+    /**
+     * Main entry point for the hmesg command.
+     * @param {any} Hexley - The main Hexley global object.
+     * @param {string[]} args - The arguments passed to the command.
+     */
+    main(Hexley: any, args: string[]) {
+        const logDir = path.join(Hexley.filesystemRootDir, 'var', 'log');
+        const currentLogFile = Hexley.sessionLogFile;
+
+        if (args.includes('--purge')) {
+            try {
+                const files = fs.readdirSync(logDir);
+                let purgedCount = 0;
+                for (const file of files) {
+                    const filePath = path.join(logDir, file);
+                    if (file.startsWith('hexleyCore-') && filePath !== currentLogFile) {
+                        fs.unlinkSync(filePath);
+                        purgedCount++;
+                    }
+                }
+                console.log(`Purged ${purgedCount} old log file(s).`);
+            } catch (error: any) {
+                console.log(`Error purging log files: ${error.message}`);
+            }
+            return;
+        }
+
+        if (!currentLogFile || !fs.existsSync(currentLogFile)) {
+            console.log("Error: Session log file not found.");
+            return;
+        }
+
+        let searchTerm: string | null = null;
+        let lineCount: number = 20;
+
+        // Parse arguments
+        for (let i = 0; i < args.length; i++) {
+            const arg = args[i];
+            if ((arg === '-s' || arg === '--search') && i + 1 < args.length) {
+                searchTerm = args[i + 1] as string;
+                i++; // Skip the next argument since we've consumed it
+            } else if ((arg === '-l' || arg === '--length') && i + 1 < args.length) {
+                const count = parseInt(args[i + 1] as string, 10);
+                if (!isNaN(count)) {
+                    lineCount = count;
+                }
+                i++; // Skip the next argument
+            }
+        }
+
+        try {
+            const data = fs.readFileSync(currentLogFile, 'utf8');
+            let lines = data.trim().split('\n');
+
+            // Apply filters and limits
+            if (searchTerm) {
+                lines = lines.filter(line => line.includes(searchTerm));
+            }
+
+            const logLines = lines.slice(-lineCount);
+
+            console.log(logLines.join('\n'));
+
+        } catch (error: any) {
+            console.log(`Error reading log file: ${error.message}`);
+        }
+    }
+    
+};

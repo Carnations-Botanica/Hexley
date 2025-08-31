@@ -1,0 +1,32 @@
+
+/**
+ * The mv command source code.
+ */
+export const mv = {
+    
+    /**
+     * Main entry point for the mv command.
+     * @param {any} Hexley - The main Hexley global object.
+     * @param {string[]} args - The arguments passed to the command.
+     */
+    main(Hexley: any, args: string[]) {
+        if (args.length < 2) {
+            console.log('mv: missing file operand');
+            return;
+        }
+
+        const source = args[0] as string;
+        const destination = args[1] as string;
+
+        const result = Hexley.frameworks.filesystem.move(Hexley, source, destination);
+
+        if (result === 'source_not_found') {
+            console.log(`mv: cannot stat '${source}': No such file or directory`);
+        } else if (result === 'destination_exists') {
+            console.log(`mv: cannot move '${source}' to '${destination}': File exists`);
+        } else if (result === 'error') {
+            console.log(`mv: cannot move '${source}' to '${destination}': An unknown error occurred.`);
+        }
+    }
+
+};

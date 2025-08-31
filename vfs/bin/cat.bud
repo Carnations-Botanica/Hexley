@@ -1,0 +1,37 @@
+
+/**
+ * The cat command source code.
+ */
+export const cat = {
+    /**
+     * Main entry point for the cat command.
+     * @param {any} Hexley - The main Hexley global object.
+     * @param {string[]} args - The arguments passed to the command.
+     */
+    main(Hexley: any, args: string[]) {
+        if (args.length === 0) {
+            console.log('cat: missing operand');
+            return;
+        }
+
+        for (const filePath of args) {
+            const fileStat = Hexley.frameworks.filesystem.stat(Hexley, filePath);
+
+            if (fileStat === null) {
+                console.log(`cat: ${filePath}: No such file or directory`);
+                continue;
+            }
+
+            if (fileStat.isDirectory()) {
+                console.log(`cat: ${filePath}: Is a directory`);
+                continue;
+            }
+
+            const content = Hexley.frameworks.filesystem.readFile(Hexley, filePath);
+            if (content !== null) {
+                console.log(content);
+            }
+        }
+    }
+
+};

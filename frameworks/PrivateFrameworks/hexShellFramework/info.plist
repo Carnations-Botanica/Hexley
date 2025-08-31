@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Framework Type</key>
+    <string>Private</string>
+    <key>Framework Entry</key>
+    <string>initializeShell</string>
+    <key>Framework Name</key>
+    <string>hexShellFramework</string>
+    <key>Framework Description</key>
+    <string>Provides the core functionality for the Hexley shell environment.</string>
+    <key>Framework Version</key>
+    <string>1.0.0</string>
+    <key>Framework Identifier</key>
+    <string>hex.carnations.hexShellFramework</string>
+    <key>Framework Structure</key>
+    <dict>
+        <key>Main</key>
+        <string>hexShellFramework.ts</string>
+    </dict>
+</dict>
+</plist>

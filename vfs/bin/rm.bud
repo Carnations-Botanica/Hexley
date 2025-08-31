@@ -1,0 +1,54 @@
+
+/**
+ * The rm command source code.
+ */
+export const rm = {
+    /**
+     * Main entry point for the rm command.
+     * @param {any} Hexley - The main Hexley global object.
+     * @param {string[]} args - The arguments passed to the command.
+     */
+    main(Hexley: any, args: string[]) {
+        if (args.length === 0) {
+            console.log('rm: missing operand');
+            return;
+        }
+
+        const recursive = args.includes('-r') || args.includes('-R');
+        const force = args.includes('-f') || args.includes('--force');
+        const filesToRemove = args.filter(arg => !arg.startsWith('-'));
+
+        if (filesToRemove.length === 0) {
+            console.log('rm: missing operand');
+            return;
+        }
+
+        for (const file of filesToRemove) {
+            const stat = Hexley.frameworks.filesystem.stat(Hexley, file);
+
+            if (!stat) {
+                if (!force) {
+                    console.log(`rm: cannot remove '${file}': No such file or directory`);
+                }
+                continue;
+            }
+
+            if (stat.isDirectory()) {
+                if (!recursive) {
+                    console.log(`rm: cannot remove '${file}': Is a directory`);
+                    continue;
+                }
+                const result = Hexley.frameworks.filesystem.removeDirectory(Hexley, file, true);
+                if (result === 'error' && !force) {
+                    console.log(`rm: cannot remove '${file}': An error occurred.`);
+                }
+            } else {
+                const success = Hexley.frameworks.filesystem.removeFile(Hexley, file);
+                if (!success && !force) {
+                    console.log(`rm: cannot remove '${file}': An error occurred.`);
+                }
+            }
+        }
+    }
+    
+};

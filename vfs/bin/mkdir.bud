@@ -1,0 +1,26 @@
+
+/**
+ * The mkdir command source code.
+ */
+export const mkdir = {
+    /**
+     * Main entry point for the mkdir command.
+     * @param {any} Hexley - The main Hexley global object.
+     * @param {string[]} args - The arguments passed to the command.
+     */
+    main(Hexley: any, args: string[]) {
+        if (args.length === 0) {
+            console.log('mkdir: missing operand');
+            return;
+        }
+
+        for (const dirPath of args) {
+            const result = Hexley.frameworks.filesystem.createDirectory(Hexley, dirPath);
+            if (result === 'exists') {
+                console.log(`mkdir: cannot create directory ‘${dirPath}’: File exists`);
+            } else if (result === 'error') {
+                console.log(`mkdir: cannot create directory ‘${dirPath}’: An unknown error occurred.`);
+            }
+        }
+    }
+};

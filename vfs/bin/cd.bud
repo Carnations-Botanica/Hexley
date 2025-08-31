@@ -1,0 +1,19 @@
+
+/**
+ * The cd command source code.
+ */
+export const cd = {
+    /**
+     * Main entry point for the cd command.
+     * @param {any} Hexley - The main Hexley global object.
+     * @param {string[]} args - The arguments passed to the command.
+     */
+    main(Hexley: any, args: string[]) {
+        const newPath = args[0] || '~';
+        const success = Hexley.frameworks.filesystem.changeDirectory(Hexley, newPath);
+        if (!success) {
+            console.log(`cd: no such file or directory: ${newPath}`);
+        }
+    }
+    
+};

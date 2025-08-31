@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Module Name</key>
+    <string>hexShell</string>
+    <key>Module Description</key>
+    <string>Provides the interactive shell environment for Hexley.</string>
+    <key>Module Version</key>
+    <string>1.0.0</string>
+    <key>Module Identifier</key>
+    <string>hex.carnations.hexShell</string>
+    <key>Module Structure</key>
+    <dict>
+        <key>Main</key>
+        <string>hexShell.ts</string>
+    </dict>
+    <key>Module Abilities</key>
+    <dict>
+        <key>canInitSlashCommands</key>
+        <false/>
+    </dict>
+    <key>Module Settings</key>
+    <dict>
+        <key>moduleEntryPoint</key>
+        <string>hexShellInit</string>
+        <key>dependsDiscordFramework</key>
+        <false/>
+        <key>canUseDiscord</key>
+        <false/>
+		<key>hasPreviousInit</key>
+		<false/>
+		<key>debugMode</key>
+		<false/>
+    </dict>
+	<key>Module Commands</key>
+	<dict/>
+	<key>Module Command Arguments</key>
+	<dict/>
+	<key>Module Command Arg Type</key>
+	<dict/>
+	<key>Module Command Arg Descriptions</key>
+	<dict/>
+	<key>Module Command Arg Requirement</key>
+	<dict/>
+</dict>
+</plist>

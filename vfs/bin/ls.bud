@@ -1,0 +1,85 @@
+import fs from 'fs';
+
+/**
+ * The ls command source code.
+ */
+export const ls = {
+    /**
+     * Main entry point for the ls command.
+     * @param {any} Hexley - The main Hexley global object.
+     * @param {string[]} args - The arguments passed to the command.
+     */
+    main(Hexley: any, args: string[]) {
+        const flags = args.filter(arg => arg.startsWith('-')).join('');
+        const showAll = flags.includes('a');
+        const longListing = flags.includes('l');
+        
+        const targetArg = args.find(arg => !arg.startsWith('-'));
+        const targetDir = targetArg || Hexley.filesystemCWDir;
+
+        const items = Hexley.frameworks.filesystem.readDirectory(Hexley, targetDir, showAll);
+
+        if (items === null) {
+            console.log(`ls: cannot access '${targetDir}': No such file or directory`);
+            return;
+        }
+
+        if (longListing) {
+            this.printLongListing(Hexley, items);
+        } else {
+            this.printShortListing(Hexley, items);
+        }
+    },
+
+    /**
+     * Prints a simple, colorized list of file and directory names.
+     * @param {any} Hexley - The main Hexley global object.
+     * @param {{name: string, stat: fs.Stats}[]} items - The items to print.
+     */
+    printShortListing(Hexley: any, items: {name: string, stat: fs.Stats}[]) {
+        const output = items.map(item => {
+            if (item.stat.isDirectory()) {
+                return Hexley.frameworks.aurora.colorText(item.name, '#87CEEB'); // Sky blue for directories
+            } else {
+                return item.name;
+            }
+        }).join('  ');
+        console.log(output);
+    },
+
+    /**
+     * Prints a detailed, long-form listing of file and directory information.
+     * @param {any} Hexley - The main Hexley global object.
+     * @param {{name: string, stat: fs.Stats}[]} items - The items to print.
+     */
+    printLongListing(Hexley: any, items: {name: string, stat: fs.Stats}[]) {
+        items.forEach(item => {
+            const { stat, name } = item;
+            const isDir = stat.isDirectory();
+            const perms = this.formatPermissions(stat.mode, isDir);
+            const size = stat.size.toString().padStart(8);
+            const mtime = new Date(stat.mtime).toLocaleString();
+            const coloredName = isDir 
+                ? Hexley.frameworks.aurora.colorText(name, '#87CEEB')
+                : name;
+
+            console.log(`${perms} ${size} ${mtime} ${coloredName}`);
+        });
+    },
+
+    /**
+     * Formats file permissions into a Unix-like string (e.g., 'drwxr-xr-x').
+     * @param {number} mode - The file mode from fs.Stats.
+     * @param {boolean} isDirectory - Whether the item is a directory.
+     * @returns {string} The formatted permissions string.
+     */
+    formatPermissions(mode: number, isDirectory: boolean): string {
+        const type = isDirectory ? 'd' : '-';
+        const read = (mode & 4) ? 'r' : '-';
+        const write = (mode & 2) ? 'w' : '-';
+        const execute = (mode & 1) ? 'x' : '-';
+        // This is a simplified version; real permissions are more complex
+        return `${type}rwxr-xr-x`;
+    }
+    
+};

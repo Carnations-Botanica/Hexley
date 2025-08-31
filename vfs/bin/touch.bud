@@ -1,0 +1,31 @@
+
+/**
+ * The touch command source code.
+ */
+export const touch = {
+    /**
+     * Main entry point for the touch command.
+     * @param {any} Hexley - The main Hexley global object.
+     * @param {string[]} args - The arguments passed to the command.
+     */
+    main(Hexley: any, args: string[]) {
+        if (args.length === 0) {
+            console.log('touch: missing file operand');
+            return;
+        }
+
+        for (const filePath of args) {
+            const fileStat = Hexley.frameworks.filesystem.stat(Hexley, filePath);
+
+            if (fileStat === null) {
+                // File doesn't exist, so create it
+                const success = Hexley.frameworks.filesystem.writeFile(Hexley, filePath, '');
+                if (!success) {
+                    console.log(`touch: cannot touch '${filePath}': An error occurred.`);
+                }
+            } else {
+                // File exists, so we'll just update its timestamp in a future update
+            }
+        }
+    }
+};
