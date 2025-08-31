@@ -92,7 +92,8 @@ function systemUptime() {
 
 // Function to generate the kernel build string
 function getKernelBuildString(): string {
-    return `Hexley System Version ${Hexley.versions.hexleyCore}: ${Hexley.hexBuildDate}; ${Hexley.username}:CarnationsInternal/${Hexley.buildType}_${Hexley.architecture}`;
+    const versionInfo = Hexley.versions['hexleyCore'];
+    return `Hexley System Version ${versionInfo ? versionInfo.version : 'N/A'}: ${Hexley.hexBuildDate}; ${Hexley.username}:CarnationsInternal/${Hexley.buildType}_${Hexley.architecture}`;
 }
 
 // Print the copyright message

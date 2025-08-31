@@ -36,6 +36,7 @@ export const filesystemFramework = {
 
             for (const item of items) {
                 if (item === '.DS_Store') continue;
+                if (item === '.gitkeep') continue;
                 
                 const itemPath = path.join(dir, item);
                 const stat = fs.statSync(itemPath);

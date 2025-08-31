@@ -39,3 +39,5 @@ push.sh
 commit.sh
 .env
 bun.lockb
+vfs/var/log/hexleyCore-*.log
+vfs/home/royalgraphx/*
