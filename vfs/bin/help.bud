@@ -1,0 +1,44 @@
+
+/**
+ * The help command module.
+ */
+export const help = {
+    description: 'Displays a list of available commands or detailed information about a specific command.',
+    extendedDescription: 'Type "help [command]" to get more information about a specific command.',
+
+    /**
+     * Main entry point for the help command.
+     * @param {any} Hexley - The main Hexley global object.
+     * @param {string[]} args - The arguments passed to the command.
+     */
+    async main(Hexley: any, args: string[]) {
+        const commands = Hexley.frameworks.hexShell.commandMap;
+
+        if (args.length > 0) {
+            const commandName = args[0] as string;
+            if (commands.has(commandName)) {
+                const commandModule = await Hexley.frameworks.hexShell._loadBudModule(Hexley, commandName);
+                if (commandModule) {
+                    const commandObject = commandModule[commandName];
+                    if (commandObject) {
+                        console.log(`Command: ${commandName}`);
+                        console.log(`Description: ${commandObject.description || 'No description provided.'}`);
+                        console.log(`\nExtended Description:\n${commandObject.extendedDescription || 'No extended description.'}`);
+                    }
+                } else {
+                    console.log(`help: could not load help topic for '${commandName}'.`);
+                }
+            } else {
+                console.log(`help: no help topics match '${commandName}'.`);
+            }
+        } else {
+            console.log(`hexShell (hSh) Environment Version ${Hexley.versions.hexShell.version} for ${Hexley.platform} ${Hexley.architecture}`);
+            console.log('These shell commands are parsed and defined internally in /bin/.');
+            console.log('Type `help [command]` for more information.');
+            console.log('\nAvailable Commands:');
+            
+            const commandList = [...commands.keys()].sort().join('  ');
+            console.log(commandList);
+        }
+    }
+};

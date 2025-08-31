@@ -527,7 +527,7 @@ for (const resourceType of resourcesToScan) {
 // Final Debug Block
 let wantDumpDebugBlock = false;
 if (Hexley.buildType === "INTERNAL") {
-    wantDumpDebugBlock = true;
+    wantDumpDebugBlock = false; // temporarily disabled for internal devs
 }
 
 if (Hexley.debugMode && wantDumpDebugBlock) {

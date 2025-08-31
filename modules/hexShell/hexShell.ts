@@ -27,7 +27,8 @@ export const hexShell = {
             return `${Hexley.frameworks.aurora.colorText(shellUsername, redBright)}@${Hexley.frameworks.aurora.colorText(shellHostname, gray)}:${Hexley.frameworks.aurora.colorText(displayPath, blue)} $ `;
         };
         
-        Hexley.log(`${Hexley.frameworks.aurora.colorText('[hexShell/hexShellInit]', this.moduleColor)} Initialized hexShell successfully!`);
+        Hexley.log(`${Hexley.frameworks.aurora.colorText('[hexShell/hexShellInit]', this.moduleColor)} Initialized hexShell successfully`);
+        Hexley.log(`${Hexley.frameworks.aurora.colorText('[hexShell/hexShellInit]', this.moduleColor)} Dropping into shell logged in as ${Hexley.username}!`);
         Hexley.hexShellLoaded = true;
         
         // Welcome Message

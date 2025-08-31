@@ -3,6 +3,9 @@
  * The clear command source code.
  */
 export const clear = {
+    description: 'Clears the terminal screen.',
+    extendedDescription: 'This command clears all previous input and output from the terminal, providing a clean slate.',
+
     /**
      * Main entry point for the clear command.
      * @param {any} Hexley - The main Hexley global object.

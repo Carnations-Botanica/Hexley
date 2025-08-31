@@ -3,7 +3,9 @@
  * The mv command source code.
  */
 export const mv = {
-    
+    description: 'Moves or renames files and directories.',
+    extendedDescription: 'Use `mv [source] [destination]` to move or rename a file or directory.',
+   
     /**
      * Main entry point for the mv command.
      * @param {any} Hexley - The main Hexley global object.

@@ -3,6 +3,9 @@
  * The rm command source code.
  */
 export const rm = {
+    description: 'Removes files or directories.',
+    extendedDescription: 'Use `rm [file]` to remove a file. Use the -r flag to remove directories and their contents.',
+
     /**
      * Main entry point for the rm command.
      * @param {any} Hexley - The main Hexley global object.

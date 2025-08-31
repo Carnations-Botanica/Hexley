@@ -3,6 +3,9 @@
  * The mkdir command source code.
  */
 export const mkdir = {
+    description: 'Creates a new directory.',
+    extendedDescription: 'Use `mkdir [directory_name]` to create a new directory in the current location.',
+
     /**
      * Main entry point for the mkdir command.
      * @param {any} Hexley - The main Hexley global object.
@@ -23,4 +26,5 @@ export const mkdir = {
             }
         }
     }
+    
 };

@@ -3,6 +3,9 @@
  * The exit command source code.
  */
 export const exit = {
+    description: 'Gracefully shuts down the Hexley instance.',
+    extendedDescription: 'This command will cleanly disconnect frameworks and modules to exit the main process.',
+
     /**
      * Main entry point for the exit command.
      * @param {any} Hexley - The main Hexley global object.

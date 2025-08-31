@@ -3,6 +3,7 @@
  * The cat command source code.
  */
 export const cat = {
+
     /**
      * Main entry point for the cat command.
      * @param {any} Hexley - The main Hexley global object.

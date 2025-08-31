@@ -4,6 +4,9 @@ import fs from 'fs';
  * The ls command source code.
  */
 export const ls = {
+    description: 'Lists the contents of a directory.',
+    extendedDescription: 'Use `ls [directory]` to see the contents of a directory. Use the -l flag for a long listing and -a to show hidden files.',
+
     /**
      * Main entry point for the ls command.
      * @param {any} Hexley - The main Hexley global object.

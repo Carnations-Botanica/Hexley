@@ -3,6 +3,9 @@
  * The cd command source code.
  */
 export const cd = {
+    description: 'Changes the current working directory.',
+    extendedDescription: 'Use `cd [directory]` to navigate to a new directory. `cd ~` will return to your home directory.',
+
     /**
      * Main entry point for the cd command.
      * @param {any} Hexley - The main Hexley global object.

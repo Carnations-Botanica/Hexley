@@ -125,6 +125,29 @@ export const hexShellFramework = {
     },
 
     /**
+     * Internal function to load a .bud file as a module.
+     * @param {any} Hexley - The main Hexley global object.
+     * @param {string} commandName - The name of the command to load.
+     * @returns {Promise<any | null>} The loaded module or null on error.
+     */
+    async _loadBudModule(Hexley: any, commandName: string): Promise<any | null> {
+        const commandPath = this.commandMap.get(commandName) as string;
+        const tempFilePath = path.join(Hexley.filesystemRootDir, 'tmp', `${commandName}-${Date.now()}.ts`);
+        
+        try {
+            const fileContent = fs.readFileSync(commandPath, 'utf8');
+            fs.writeFileSync(tempFilePath, fileContent);
+            return await import(tempFilePath);
+        } catch (error) {
+            return null;
+        } finally {
+            if (fs.existsSync(tempFilePath)) {
+                fs.unlinkSync(tempFilePath);
+            }
+        }
+    },
+
+    /**
      * Internal function to execute a .bud file.
      * @param {any} Hexley - The main Hexley global object.
      * @param {string} commandName - The name of the command to execute.

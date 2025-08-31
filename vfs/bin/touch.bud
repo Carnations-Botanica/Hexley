@@ -3,6 +3,9 @@
  * The touch command source code.
  */
 export const touch = {
+    description: 'Creates an empty file.',
+    extendedDescription: 'Use `touch [file_name]` to create a new, empty file in the current directory.',
+
     /**
      * Main entry point for the touch command.
      * @param {any} Hexley - The main Hexley global object.
@@ -28,4 +31,5 @@ export const touch = {
             }
         }
     }
+    
 };

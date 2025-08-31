@@ -5,6 +5,9 @@ import path from 'path';
  * The hmesg command source code, similar to dmesg.
  */
 export const hmesg = {
+    description: 'Displays the system message buffer.',
+    extendedDescription: 'Prints the kernel ring buffer messages. Can be filtered by search term and line count.',
+
     /**
      * Main entry point for the hmesg command.
      * @param {any} Hexley - The main Hexley global object.
