@@ -1,0 +1,12 @@
+[Unit]
+Description=Service for autostarting Hexley as a background process
+After=multi-user.target
+
+[Service]
+Type=idle
+User=username
+WorkingDirectory=/home/username/Hexley
+ExecStart=/home/username/.nvm/versions/node/v00.0.0/bin/node /home/username/Hexley/main.js
+
+[Install]
+WantedBy=multi-user.target
