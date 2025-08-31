@@ -7,7 +7,7 @@ An Open Source and Modular psuedo Operating System. Badly modeled after XNU and 
 
 <br>
 <p align="center">
-  <img src="./assets/gallery/hexley_IDE.png" width="100%" height="100%">
+  <img src="./assets/gallery/Hexley_IDE.png" width="100%" height="100%">
 </p>
 <br>
 
