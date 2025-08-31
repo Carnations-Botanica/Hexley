@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Module Name</key>
+	<string>exampleModule</string>
+	<key>Module Description</key>
+	<string>Example Module for Loader debugging!</string>
+	<key>Module Version</key>
+	<string>1.0.0</string>
+	<key>Module Identifier</key>
+	<string>hex.carnations.exampleModule</string>
+	<key>Module Structure</key>
+	<dict>
+		<key>Main</key>
+		<string>exampleModule.ts</string>
+		<key>submoduleExample</key>
+		<string>submoduleExample/info.plist</string>
+	</dict>
+	<key>Module Abilities</key>
+	<dict>
+		<key>canInitSlashCommands</key>
+		<true/>
+	</dict>
+	<key>Module Settings</key>
+	<dict>
+		<key>moduleEntryPoint</key>
+		<string>exampleModuleStart</string>
+		<key>canUseDiscord</key>
+		<true/>
+		<key>hasPreviousInit</key>
+		<true/>
+		<key>debugMode</key>
+		<false/>
+	</dict>
+	<key>Module Commands</key>
+	<dict>
+		<key>example</key>
+		<string>An example Slash Command for Botanica users!</string>
+		<key>exampleWithArgs</key>
+		<string>An Example Slash Command that takes arguments!</string>
+	</dict>
+	<key>Module Command Arguments</key>
+	<dict>
+		<key>example</key>
+		<string>None</string>
+		<key>exampleWithArgs</key>
+		<string>arg1, arg2, arg3, arg4</string>
+	</dict>
+	<key>Module Command Arg Type</key>
+	<dict>
+		<key>arg1</key>
+		<integer>3</integer>
+		<key>arg2</key>
+		<integer>4</integer>
+		<key>arg3</key>
+		<integer>5</integer>
+		<key>arg4</key>
+		<integer>6</integer>
+	</dict>
+	<key>Module Command Arg Descriptions</key>
+	<dict>
+		<key>arg1</key>
+		<string>Example Description for arg1, takes a String</string>
+		<key>arg2</key>
+		<string>Example Description for arg2, takes an Integer</string>
+		<key>arg3</key>
+		<string>Example Description for arg3, takes a Boolean</string>
+		<key>arg4</key>
+		<string>Example Description for arg4, takes a Username</string>
+	</dict>
+	<key>Module Command Arg Requirement</key>
+	<dict>
+		<key>arg1</key>
+		<true/>
+		<key>arg2</key>
+		<true/>
+		<key>arg3</key>
+		<false/>
+		<key>arg4</key>
+		<false/>
+	</dict>
+</dict>
+</plist>

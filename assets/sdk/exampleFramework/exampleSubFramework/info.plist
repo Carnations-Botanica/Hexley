@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Framework Type</key>
+	<string>Public</string>
+	<key>Framework Entry</key>
+	<string>initializeSubExample</string>
+	<key>Framework Name</key>
+	<string>exampleSubFramework</string>
+	<key>Framework Description</key>
+	<string>The Example Sub Framework for debugging Loader!</string>
+	<key>Framework Version</key>
+	<string>1.0.0</string>
+	<key>Framework Identifier</key>
+	<string>hex.carnations.exampleFramework.exampleSubFramework</string>
+	<key>Framework Structure</key>
+	<dict>
+		<key>Main</key>
+		<string>exampleSubFramework.ts</string>
+	</dict>
+</dict>
+</plist>
