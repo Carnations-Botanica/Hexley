@@ -38,3 +38,4 @@ yarn-error.log*
 push.sh
 commit.sh
 .env
+bun.lockb
