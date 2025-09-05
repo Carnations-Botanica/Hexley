@@ -40,40 +40,30 @@ export const version = {
                     .setTitle('Hexley says...')
                     .setTimestamp();
 
-                // Prioritize sequelizerFramework for detailed version info
-                if (Hexley.sequelizerLoaded) {
-                    sourcedFrom = 'sequelizerFramework';
+                // Prioritize databaseFramework for detailed version info
+                if (Hexley.databaseLoaded) {
+                    sourcedFrom = 'databaseFramework';
                     
                     const versionTable = { options: { tableName: 'versionTable' } };
-                    const allEntries = await Hexley.frameworks.sequelizer.getTableDefinitionEntries(Hexley, process.env.DB_NAME, versionTable);
+                    const allEntries = await Hexley.frameworks.database.getTableDefinitionEntries(Hexley, process.env.DB_NAME, versionTable);
                     
-                    const filteredEntries = allEntries.filter((entry: any) => typesToShow.includes(entry.toJSON().type));
+                    // FIX: Access the 'type' property directly on the plain object
+                    const filteredEntries = allEntries.filter((entry: any) => typesToShow.includes(entry.type));
 
                     if (filteredEntries.length > 0) {
-                        const includedTypes = [];
-                        if (typesToShow.includes('Kernel')) includedTypes.push('Kernel');
-                        if (typesToShow.includes('Module')) includedTypes.push('Modules');
-                        if (typesToShow.includes('Framework')) includedTypes.push('Frameworks');
+                        const includedTypes = ['Modules', 'Frameworks'];
+                        versionEmbed.setDescription(`Here are all the versions of the loaded ${includedTypes.join(' and ')}.`);
 
-                        let description = 'Here are all the versions of the loaded ';
-                        if (includedTypes.length > 1) {
-                            const last = includedTypes.pop();
-                            description += includedTypes.join(', ') + ` and ${last}.`;
-                        } else if (includedTypes.length === 1) {
-                            description += `${includedTypes[0]}.`;
-                        }
-                        versionEmbed.setDescription(description);
-
-                        for (const entry of filteredEntries) {
-                            const entryData = entry.toJSON();
+                        for (const entryData of filteredEntries) {
+                            // FIX: Use the entry directly, no .toJSON() needed (Comment to be removed next commit)
                             versionEmbed.addFields({ name: entryData.name, value: `Version: ${entryData.version}\nType: ${entryData.type}`, inline: true });
                         }
                     } else {
                         versionEmbed.setDescription('No version information found for the specified types.');
                     }
                     
-                    const moduleCount = allEntries.filter((entry: any) => entry.toJSON().type === 'Module').length;
-                    const frameworkCount = allEntries.filter((entry: any) => entry.toJSON().type === 'Framework').length;
+                    const moduleCount = allEntries.filter((entry: any) => entry.type === 'Module').length;
+                    const frameworkCount = allEntries.filter((entry: any) => entry.type === 'Framework').length;
                     versionEmbed.setFooter({ text: `Modules: ${moduleCount} | Frameworks: ${frameworkCount}` });
 
                 } 

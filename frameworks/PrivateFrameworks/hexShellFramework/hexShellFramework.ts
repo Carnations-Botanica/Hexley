@@ -24,7 +24,9 @@ export const hexShellFramework = {
         // Load history if it exists
         if (fs.existsSync(this.historyPath)) {
             const historyData = fs.readFileSync(this.historyPath, 'utf8');
-            this.history = historyData.split('\n').filter(line => line);
+
+            // FIX: Load the file and reverse it so the most recent command is at index 0. (Comment to be removed in next commit)
+            this.history = historyData.split('\n').filter(line => line).reverse();
         }
 
         // Scan for .bud files and build the command map
@@ -52,10 +54,11 @@ export const hexShellFramework = {
      * Saves the command history to the .hshistory file.
      */
     _saveHistory() {
-        if (this.history.length > 50) {
-            this.history = this.history.slice(this.history.length - 50);
+        while (this.history.length > 50) {
+            this.history.pop();
         }
-        fs.writeFileSync(this.historyPath, this.history.join('\n'));
+        const historyToSave = [...this.history].reverse();
+        fs.writeFileSync(this.historyPath, historyToSave.join('\n'));
     },
 
     /**
@@ -102,7 +105,6 @@ export const hexShellFramework = {
         this.rl.on('line', (input) => {
             this.shutdownConfirmed = false; // Reset on new command that wasn't ctrl+c
             if (input) {
-                this.history.push(input);
                 this._saveHistory();
             }
             this.handleInput(Hexley, input);

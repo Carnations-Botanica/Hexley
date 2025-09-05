@@ -167,8 +167,9 @@ export const Hexley = {
     auroraLoaded: false,
     discordLoad: false,
     discordLoaded: false,
-    sequelizerLoad: false,
-    sequelizerLoaded: false,
+    databaseLoad: false,
+    databaseLoaded: false,
+    databaseMode: "Local", // Framework supports "Local" or "Sequelizer" modes, define in your .env!
     hexShellLoad: true,
     hexShellLoaded: false,
     hideLogInShell: false,
@@ -217,12 +218,13 @@ export const Hexley = {
     filesystemUserDir: '',
     filesystemCWDir: '',
     sessionLogFile: '',
+    databaseLocalDir: '',
 
     // Containers for loaded resources
     frameworks: {
         aurora: dummyAuroraFramework,
         filesystem: null as any,
-        sequelizer: null as any,
+        database: null as any,
         version: null as any,
         registry: null as any,
         loader: null as any,
@@ -284,6 +286,11 @@ if (Hexley.buildType !== "INTERNAL") {
 if (Hexley.debugMode) {
     log(`[hexleyCore/Dbg] Hexley.buildType is: ${Hexley.buildType}`);
 }
+const databaseModeRaw = process.env.DATABASE_MODE || "Local";
+Hexley.databaseMode = databaseModeRaw.charAt(0).toUpperCase() + databaseModeRaw.slice(1).toLowerCase(); // Capitalizes the mode (e.g. local -> Local)
+if (Hexley.debugMode) {
+    log(`[hexleyCore/Dbg] Hexley.databaseMode is: ${Hexley.databaseMode}`);
+}
 Hexley.kernelString = getKernelBuildString();
 if (Hexley.debugMode) {
     log(`[hexleyCore/Dbg] Hexley.kernelString is: ${Hexley.kernelString}`);
@@ -311,7 +318,7 @@ const resourcesToScan = [
     {
         name: 'Private Frameworks',
         path: Hexley.privateFrameworksRootPath,
-        ignoreList: ['filesystemFramework', 'hexShellFramework', 'auroraFramework', 'discordFramework', 'loaderFramework', 'registryFramework', 'sequelizerFramework', 'versionFramework', '.DS_Store'],
+        ignoreList: ['filesystemFramework', 'hexShellFramework', 'auroraFramework', 'discordFramework', 'loaderFramework', 'registryFramework', 'databaseFramework', 'versionFramework', '.DS_Store'],
         counter: 'frameworksLoadedCount'
     },
     {
@@ -338,6 +345,10 @@ log(`${Hexley.frameworks.aurora.colorText('[hexleyCore]', Hexley.frameworks.auro
 const { filesystemFramework } = await import(path.join(Hexley.privateFrameworksRootPath, 'filesystemFramework/filesystemFramework.ts'));
 Hexley.frameworks.filesystem = filesystemFramework;
 Hexley.frameworks.filesystem.initializeFilesystem(Hexley);
+if (Hexley.debugMode && Hexley.databaseMode === "Local") {
+    Hexley.databaseLocalDir = path.join(Hexley.filesystemRootDir, 'var', 'db.json');
+    log(`[hexleyCore/Dbg] Hexley.databaseLocalDir is: ${Hexley.databaseLocalDir}`);
+}
 
 // Conditional hexShell Module Initialization
 if (Hexley.hexShellLoad) {
@@ -378,51 +389,49 @@ if (Hexley.auroraLoad) {
     }
 }
 
-// Sequelizer Framework Initialization Logic
-Hexley.sequelizerLoad = process.env.SEQUELIZER_ENABLED === "TRUE";
-if (Hexley.sequelizerLoad) {
-    log(`${Hexley.frameworks.aurora.colorText('[hexleyCore]', Hexley.frameworks.aurora.tintGray)} Loading Sequelizer framework...`);
-    const { sequelizerFramework } = await import(path.join(Hexley.privateFrameworksRootPath, 'sequelizerFramework/sequelizerFramework.ts'));
-    Hexley.frameworks.sequelizer = sequelizerFramework;
-    await Hexley.frameworks.sequelizer.initializeSequelizerConnection(Hexley);
-    Hexley.sequelizerLoaded = true;
+// Database Framework Initialization Logic (Replaced Sequelizer logic, this comment will go away next commit)
+Hexley.databaseLoad = process.env.DATABASE_ENABLED === "TRUE";
+if (Hexley.databaseLoad) {
+    log(`${Hexley.frameworks.aurora.colorText('[hexleyCore]', Hexley.frameworks.aurora.tintGray)} Loading Database framework...`);
+    const { databaseFramework } = await import(path.join(Hexley.privateFrameworksRootPath, 'databaseFramework/databaseFramework.ts'));
+    Hexley.frameworks.database = databaseFramework;
+    await Hexley.frameworks.database.initializeDatabaseConnection(Hexley);
 } else {
-    log(`${Hexley.frameworks.aurora.colorText('[hexleyCore]', Hexley.frameworks.aurora.tintGray)} Sequelizer support is disabled. Modules and Frameworks requiring database access may not work correctly.`);
-    Hexley.sequelizerLoaded = false;
-} if (Hexley.sequelizerLoad && Hexley.debugMode) {
-    log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)} Beginning database connection debug dump...`);
-    const databases = Object.keys(Hexley.database);
-    if (databases.length > 0) {
-        for (const dbName of databases) {
-            log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   - Found database: "${dbName}"`);
-            const sequelizeInstance = Hexley.database[dbName];
-            if (sequelizeInstance) {
-                const host = sequelizeInstance.options.host;
-                const port = sequelizeInstance.options.port;
-                const dialect = sequelizeInstance.options.dialect;
-                log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}     - Host: ${host}`);
-                log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}     - Port: ${port}`);
-                log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}     - Dialect: ${dialect}`);
+    log(`${Hexley.frameworks.aurora.colorText('[hexleyCore]', Hexley.frameworks.aurora.tintGray)} Database support is disabled. Modules and Frameworks requiring database access may not work correctly.`);
+}
 
-                // Fetch and log tables for this database
-                try {
-                    const tables = await Hexley.frameworks.sequelizer.getDatabaseTables(Hexley, dbName);
-                    if (tables.length > 0) {
-                        log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}     - Tables found:`);
-                        for (const tableName of tables) {
-                            log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}       - ${tableName}`);
-                        }
-                    } else {
-                        log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}     - No tables found.`);
+// Database Debug Block
+if (Hexley.databaseLoad && Hexley.debugMode) {
+    log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)} Beginning database connection debug dump...`);
+    
+    if (Hexley.databaseMode === 'Sequelizer') {
+        const databases = Object.keys(Hexley.database);
+        if (databases.length > 0) {
+            for (const dbName of databases) {
+                log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   - Found database: "${dbName}"`);
+                const sequelizeInstance = Hexley.database[dbName];
+                if (sequelizeInstance) {
+                    const { host, port, dialect } = sequelizeInstance.options;
+                    log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}     - Host: ${host}, Port: ${port}, Dialect: ${dialect}`);
+                    
+                    try {
+                        const tables = await Hexley.frameworks.database.getDatabaseTables(Hexley, dbName);
+                        log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}     - Tables: [${tables.join(', ')}]`);
+                    } catch (error) {
+                        log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintRed)}     - Error fetching tables: ${error}`);
                     }
-                } catch (error) {
-                    log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintRed)}     - Error fetching tables: ${error}`);
                 }
             }
+        } else {
+            log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)} No active Sequelizer database connections found.`);
         }
-    } else {
-        log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)} No databases found in Hexley.database.`);
+    } else { // Local Mode
+        const tables = await Hexley.frameworks.database.getDatabaseTables(Hexley, '');
+        log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   - Mode: Local`);
+        log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   - File: ${Hexley.databaseLocalDir}`);
+        log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   - Tables: [${tables.join(', ')}]`);
     }
+
     log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)} Finished database connection debug dump.`);
 }
 
@@ -527,28 +536,28 @@ for (const resourceType of resourcesToScan) {
 // Final Debug Block
 let wantDumpDebugBlock = false;
 if (Hexley.buildType === "INTERNAL") {
-    wantDumpDebugBlock = false; // temporarily disabled for internal devs
+    wantDumpDebugBlock = true;
 }
 
 if (Hexley.debugMode && wantDumpDebugBlock) {
     log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)} === Final Debug Dump ===`);
     log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}`); // For spacing
 
-    // Sequelizer Dump
-    if (Hexley.sequelizerLoaded) {
+    // Database Dump
+    if (Hexley.databaseLoaded) {
         const dbName = process.env.DB_NAME;
         log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)} Dumping database entries from "${dbName}"...`);
         try {
-            const tables = await Hexley.frameworks.sequelizer.getDatabaseTables(Hexley, dbName);
+            const tables = await Hexley.frameworks.database.getDatabaseTables(Hexley, dbName);
             if (tables.length > 0) {
                 for (const tableName of tables) {
                     log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   - Table: ${tableName}`);
                     const tableModel = { options: { tableName: tableName } };
-                    const entries = await Hexley.frameworks.sequelizer.getTableDefinitionEntries(Hexley, dbName, tableModel);
+                    const entries = await Hexley.frameworks.database.getTableDefinitionEntries(Hexley, dbName, tableModel);
                     if (entries.length > 0) {
                         log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}     - Entries:`);
                         for (const entry of entries) {
-                            log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}       - ${JSON.stringify(entry.toJSON())}`);
+                            log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}       - ${JSON.stringify(entry)}`);
                         }
                     } else {
                         log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}     - No entries found.`);
@@ -612,12 +621,12 @@ if (Hexley.debugMode && wantDumpDebugBlock) {
     const allNames = new Set<string>();
 
     const dbNames = new Set<string>();
-    if (Hexley.sequelizerLoaded) {
+    if (Hexley.databaseLoaded) {
         const dbName = process.env.DB_NAME;
         const versionTable = { options: { tableName: 'versionTable' } };
-        const dbEntries = await Hexley.frameworks.sequelizer.getTableDefinitionEntries(Hexley, dbName, versionTable);
+        const dbEntries = await Hexley.frameworks.database.getTableDefinitionEntries(Hexley, dbName, versionTable);
         dbEntries.forEach((entry: any) => {
-            const name = entry.toJSON().name;
+            const name = entry.name; 
             if (name !== 'hexleyCore') {
                 dbNames.add(name);
                 allNames.add(name);
@@ -647,7 +656,7 @@ if (Hexley.debugMode && wantDumpDebugBlock) {
 
     for (const name of allNames) {
         const missingFrom = [];
-        if (Hexley.sequelizerLoaded && !dbNames.has(name)) {
+        if (Hexley.databaseLoaded && !dbNames.has(name)) {
             missingFrom.push('database');
         }
         if (Hexley.versionLoaded && !versionNames.has(name)) {
@@ -666,9 +675,9 @@ if (Hexley.debugMode && wantDumpDebugBlock) {
     if (!inconsistenciesFound) {
         log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGreen)}   - Sanity Check Passed: All resources are consistent.`);
     }
-    log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}`); // For spacing
-
+    log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}`);
     log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)} === End of Final Debug Dump ===`);
+    log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}`);
 }
 
 // Filesystem Debug Block
@@ -677,7 +686,7 @@ if (Hexley.debugMode && Hexley.filesystemLoaded && wantDumpDebugBlock) {
     log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   - Root Directory: ${Hexley.filesystemRootDir}`);
     log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   - User Directory: ${Hexley.filesystemUserDir}`);
     log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   - VFS Environment Current Path: ${Hexley.filesystemCWDir}`);
-    log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   - VFS Structure: ${JSON.stringify(Hexley.vfsStructure, null, 2)}`);
+    // log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   - VFS Structure: ${JSON.stringify(Hexley.vfsStructure, null, 2)}`);
     log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)} === End of Filesystem Debug Dump ===`);
 }
 

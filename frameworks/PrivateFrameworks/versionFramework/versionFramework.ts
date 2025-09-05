@@ -40,15 +40,15 @@ export const versionFramework = {
             }
         };
 
-        if (Hexley.sequelizerLoaded) {
+        if (Hexley.databaseLoaded) {
             Hexley.log(`${Hexley.frameworks.aurora.colorText('[versionFramework/initializeVersionFramework]', this.frameworkColor)} Sequelizer is loaded. Setting up database...`);
         
-            await Hexley.frameworks.sequelizer.initTableDefinition(Hexley, process.env.DB_NAME, versionTable);
+            await Hexley.frameworks.database.initTableDefinition(Hexley, process.env.DB_NAME, versionTable);
 
-            await Hexley.frameworks.sequelizer.resetTableDefinition(Hexley, process.env.DB_NAME, versionTable);
+            await Hexley.frameworks.database.resetTableDefinition(Hexley, process.env.DB_NAME, versionTable);
 
             // Add the version entry for the hexleyCore itself
-            await Hexley.frameworks.sequelizer.addTableDefinitionEntry(
+            await Hexley.frameworks.database.addTableDefinitionEntry(
                 Hexley,
                 process.env.DB_NAME,
                 versionTable,
@@ -57,7 +57,7 @@ export const versionFramework = {
             );
 
             // Add the version entry for the registryFramework itself
-            await Hexley.frameworks.sequelizer.addTableDefinitionEntry(
+            await Hexley.frameworks.database.addTableDefinitionEntry(
                 Hexley,
                 process.env.DB_NAME,
                 versionTable,
@@ -66,7 +66,7 @@ export const versionFramework = {
             );
 
             // Add the version entry for the versionFramework itself
-            await Hexley.frameworks.sequelizer.addTableDefinitionEntry(
+            await Hexley.frameworks.database.addTableDefinitionEntry(
                 Hexley,
                 process.env.DB_NAME,
                 versionTable,
@@ -108,7 +108,7 @@ export const versionFramework = {
         Hexley.versions[name] = { version: version, type: type };
         Hexley.log(`${Hexley.frameworks.aurora.colorText('[versionFramework/addVersionEntry]', this.frameworkColor)} Added version entry for "${name}": ${version}`);
 
-        if (Hexley.sequelizerLoaded) {
+        if (Hexley.databaseLoaded) {
             const versionTable = {
                 definition: {
                     name: {
@@ -133,7 +133,7 @@ export const versionFramework = {
                 }
             };
 
-            await Hexley.frameworks.sequelizer.addTableDefinitionEntry(
+            await Hexley.frameworks.database.addTableDefinitionEntry(
                 Hexley,
                 process.env.DB_NAME,
                 versionTable,
@@ -156,12 +156,12 @@ export const versionFramework = {
             Hexley.log(`${Hexley.frameworks.aurora.colorText('[versionFramework/removeVersionEntry]', this.frameworkColor)} Removed version entry for "${name}" from memory.`);
         }
 
-        if (Hexley.sequelizerLoaded) {
+        if (Hexley.databaseLoaded) {
             const versionTable = {
                 options: { tableName: 'versionTable' }
             };
             try {
-                await Hexley.frameworks.sequelizer.deleteTableDefinitionEntry(
+                await Hexley.frameworks.database.deleteTableDefinitionEntry(
                     Hexley,
                     process.env.DB_NAME,
                     versionTable,
@@ -184,13 +184,13 @@ export const versionFramework = {
         if (!Hexley.versions || !Hexley.versions[name]) {
             Hexley.log(`${Hexley.frameworks.aurora.colorText('[versionFramework/getVersionEntry]', this.frameworkColor)} Version for "${name}" not found in memory.`);
             // Fallback to database lookup if Sequelizer is loaded
-            if (Hexley.sequelizerLoaded) {
+            if (Hexley.databaseLoaded) {
                 const versionTable = {
                     definition: {}, // Definition isn't needed for retrieval
                     options: { tableName: 'versionTable' }
                 };
                 try {
-                    const entry = await Hexley.frameworks.sequelizer.getTableDefinitionEntry(Hexley, process.env.DB_NAME, versionTable, { where: { name: name } });
+                    const entry = await Hexley.frameworks.database.getTableDefinitionEntry(Hexley, process.env.DB_NAME, versionTable, { where: { name: name } });
                     if (entry) {
                         Hexley.log(`${Hexley.frameworks.aurora.colorText('[versionFramework/getVersionEntry]', this.frameworkColor)} Version for "${name}" retrieved from database.`);
                         return { name: entry.name, type: entry.type, version: entry.version };
@@ -203,13 +203,13 @@ export const versionFramework = {
         }
 
         // We can't get the type from the in-memory versions object, so let's check the database
-        if (Hexley.sequelizerLoaded) {
+        if (Hexley.databaseLoaded) {
             const versionTable = {
                 definition: {},
                 options: { tableName: 'versionTable' }
             };
             try {
-                const entry = await Hexley.frameworks.sequelizer.getTableDefinitionEntry(Hexley, process.env.DB_NAME, versionTable, { where: { name: name } });
+                const entry = await Hexley.frameworks.database.getTableDefinitionEntry(Hexley, process.env.DB_NAME, versionTable, { where: { name: name } });
                 if (entry) {
                     return { name: entry.name, type: entry.type, version: entry.version };
                 }

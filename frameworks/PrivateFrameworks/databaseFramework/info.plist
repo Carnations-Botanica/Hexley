@@ -5,19 +5,19 @@
 	<key>Framework Type</key>
 	<string>Private</string>
 	<key>Framework Entry</key>
-	<string>initializeSequelizerConnection</string>
+	<string>initDatabaseConnection</string>
 	<key>Framework Name</key>
-	<string>sequelizerFramework</string>
+	<string>databaseFramework</string>
 	<key>Framework Description</key>
-	<string>Provides Hexley a MariaDB connection via Sequelize!</string>
+	<string>Provides Hexley a database for storing information!</string>
 	<key>Framework Version</key>
 	<string>1.0.0</string>
 	<key>Framework Identifier</key>
-	<string>hex.carnations.sequelizerFramework</string>
+	<string>hex.carnations.databaseFramework</string>
 	<key>Framework Structure</key>
 	<dict>
 		<key>Main</key>
-		<string>sequelizerFramework.ts</string>
+		<string>databaseFramework.ts</string>
 	</dict>
 </dict>
 </plist>

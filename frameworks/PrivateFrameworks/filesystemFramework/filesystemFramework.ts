@@ -68,7 +68,7 @@ export const filesystemFramework = {
      * Initializes the Filesystem Framework and the virtual file system (VFS).
      * @param {any} Hexley - The main Hexley global object.
      */
-    initializeFilesystem(Hexley: any) {
+    async initializeFilesystem(Hexley: any) {
         Hexley.log(`${Hexley.frameworks.aurora.colorText('[filesystemFramework/initializeFilesystem]', this.frameworkColor)} Initializing...`);
         
         this.vfsRootPath = path.join(Hexley.workingDir, 'vfs');
