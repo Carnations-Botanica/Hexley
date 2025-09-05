@@ -76,7 +76,7 @@ export const auroraFramework = {
      * @param {any} Hexley - The main Hexley global object.
      */
     initializeAurora(Hexley: any) {
-        Hexley.log(`${Hexley.frameworks.aurora.colorText('[auroraFramework/initializeAurora]', '#FFFFFF')} Initializing Aurora Framework...`);
+        Hexley.log(`[auroraFramework/initializeAurora] Initializing Aurora Framework...`);
         
         // Update the Hexley global object to signal that Aurora is loaded
         Hexley.auroraLoaded = true;
