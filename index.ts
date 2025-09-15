@@ -230,7 +230,10 @@ export const Hexley = {
         loader: null as any,
         discord: null as any,
     } as { [key: string]: any }, // Cast the object to a type that allows any string key
-    modules: {} as { [key: string]: any }
+
+    modules: {
+        hexShell: null as any,
+    } as { [key: string]: any }, // Cast the object to a type that allows any string key
 
 };
 

@@ -186,6 +186,7 @@ export const databaseFramework = {
     },
 
     async addTableDefinitionEntry(Hexley: any, databaseName: string, tableModel: { options: any }, entryObject: any, query: any): Promise<any> {
+        Hexley.log(`${Hexley.frameworks.aurora.colorText(`[databaseFramework/addTableDefinitionEntry]`, this.frameworkColor)} Received request for table: ${tableModel.options.tableName}`);
         if (Hexley.databaseMode === 'Local') {
             return this._handleLocalAddEntry(Hexley, tableModel, entryObject, query);
         }
@@ -195,8 +196,57 @@ export const databaseFramework = {
         const model = sequelizeInstance.models[tableModel.options.tableName];
         if (!model) return null;
         const existingEntry = await model.findOne({ where: query });
-        if (existingEntry) return null;
+        if (existingEntry) {
+            Hexley.log(`${Hexley.frameworks.aurora.colorText(`[databaseFramework/addTableDefinitionEntry]`, this.frameworkColor)} Entry already exists in ${tableModel.options.tableName}. Will not create.`);
+            return null;
+        }
+
+        Hexley.log(`${Hexley.frameworks.aurora.colorText(`[databaseFramework/addTableDefinitionEntry]`, this.frameworkColor)} Adding new entry to ${tableModel.options.tableName}...`);
         return await model.create(entryObject);
+    },
+
+    async updateTableDefinitionEntry(Hexley: any, databaseName: string, tableModel: { options: any }, entryObject: any, query: any): Promise<any> {
+        Hexley.log(`${Hexley.frameworks.aurora.colorText(`[databaseFramework/updateTableDefinitionEntry]`, this.frameworkColor)} Received request for table: ${tableModel.options.tableName}`);
+        if (Hexley.databaseMode === 'Local') {
+            return this._handleLocalUpdateEntry(Hexley, tableModel, entryObject, query);
+        }
+        // --- Sequelizer Mode ---
+        const sequelizeInstance = Hexley.database[databaseName];
+        if (!sequelizeInstance) return null;
+        const model = sequelizeInstance.models[tableModel.options.tableName];
+        if (!model) return null;
+
+        Hexley.log(`${Hexley.frameworks.aurora.colorText(`[databaseFramework/updateTableDefinitionEntry]`, this.frameworkColor)} Updating entry in ${tableModel.options.tableName}...`);
+        return await model.update(entryObject, { where: query });
+    },
+
+    async upsertTableDefinitionEntry(Hexley: any, databaseName: string, tableModel: { options: any }, entryObject: any): Promise<any> {
+        Hexley.log(`${Hexley.frameworks.aurora.colorText(`[databaseFramework/upsertTableDefinitionEntry]`, this.frameworkColor)} Received request for table: ${tableModel.options.tableName}`);
+        if (Hexley.databaseMode === 'Local') {
+            // Local mode doesn't have a simple upsert, so we'll do it manually.
+            const primaryKey = Object.keys(entryObject)[0];
+            if (!primaryKey) {
+                Hexley.log(`${Hexley.frameworks.aurora.colorText(`[databaseFramework/upsertTableDefinitionEntry]`, this.frameworkColor)} Error: Cannot upsert empty object.`);
+                return null;
+            }
+            
+            const query = { where: { [primaryKey]: entryObject[primaryKey] } };
+            const existing = await this._handleLocalGetEntry(Hexley, tableModel, query);
+
+            if (existing) {
+                return this._handleLocalUpdateEntry(Hexley, tableModel, entryObject, query);
+            } else {
+                return this._handleLocalAddEntry(Hexley, tableModel, entryObject, query);
+            }
+        }
+        // --- Sequelizer Mode ---
+        const sequelizeInstance = Hexley.database[databaseName];
+        if (!sequelizeInstance) return null;
+        const model = sequelizeInstance.models[tableModel.options.tableName];
+        if (!model) return null;
+
+        Hexley.log(`${Hexley.frameworks.aurora.colorText(`[databaseFramework/upsertTableDefinitionEntry]`, this.frameworkColor)} Upserting entry in ${tableModel.options.tableName}...`);
+        return await model.upsert(entryObject);
     },
 
     async deleteTableDefinitionEntry(Hexley: any, databaseName: string, tableModel: { options: any }, query: any): Promise<boolean> {
@@ -253,9 +303,28 @@ export const databaseFramework = {
         const existingEntry = await this._handleLocalGetEntry(Hexley, tableModel, { where: query });
         if (existingEntry) return null;
 
+        Hexley.log(`${Hexley.frameworks.aurora.colorText(`[databaseFramework/_handleLocalAddEntry]`, this.frameworkColor)} Adding new entry to ${tableModel.options.tableName}...`);
         table.push(entryObject);
         this._saveLocalDB(Hexley);
         return entryObject;
+    },
+
+    async _handleLocalUpdateEntry(Hexley: any, tableModel: any, entryObject: any, query: any): Promise<any> {
+        const tableName = tableModel.options.tableName;
+        const table = this._localDB[tableName] || [];
+        if (!query || !query.where) return null;
+
+        const entryToUpdate = table.find(entry => 
+            Object.keys(query.where).every(key => entry[key] === query.where[key])
+        );
+
+        if (entryToUpdate) {
+            Hexley.log(`${Hexley.frameworks.aurora.colorText(`[databaseFramework/_handleLocalUpdateEntry]`, this.frameworkColor)} Updating entry in ${tableName}...`);
+            Object.assign(entryToUpdate, entryObject);
+            this._saveLocalDB(Hexley);
+            return entryToUpdate;
+        }
+        return null;
     },
 
     async _handleLocalDeleteEntry(Hexley: any, tableModel: any, query: any): Promise<boolean> {

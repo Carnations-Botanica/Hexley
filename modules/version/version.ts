@@ -47,7 +47,6 @@ export const version = {
                     const versionTable = { options: { tableName: 'versionTable' } };
                     const allEntries = await Hexley.frameworks.database.getTableDefinitionEntries(Hexley, process.env.DB_NAME, versionTable);
                     
-                    // FIX: Access the 'type' property directly on the plain object
                     const filteredEntries = allEntries.filter((entry: any) => typesToShow.includes(entry.type));
 
                     if (filteredEntries.length > 0) {
@@ -55,7 +54,6 @@ export const version = {
                         versionEmbed.setDescription(`Here are all the versions of the loaded ${includedTypes.join(' and ')}.`);
 
                         for (const entryData of filteredEntries) {
-                            // FIX: Use the entry directly, no .toJSON() needed (Comment to be removed next commit)
                             versionEmbed.addFields({ name: entryData.name, value: `Version: ${entryData.version}\nType: ${entryData.type}`, inline: true });
                         }
                     } else {

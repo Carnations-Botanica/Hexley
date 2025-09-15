@@ -22,6 +22,11 @@
 		<key>canInitSlashCommands</key>
 		<true/>
 	</dict>
+	<key>Module Environment</key>
+	<dict>
+		<key>EXAMPLE_VARIABLE</key>
+		<string>EXAMPLE_DATA</string>
+	</dict>
 	<key>Module Settings</key>
 	<dict>
 		<key>moduleEntryPoint</key>

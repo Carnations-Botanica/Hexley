@@ -1,9 +1,9 @@
 
 /**
- * The exit command source code.
+ * The shutdown command source code.
  */
-export const exit = {
-    description: 'Gracefully shuts down the Hexley instance.',
+export const shutdown = {
+    description: 'Gracefully shuts down the entire Hexley instance.',
     extendedDescription: 'This command will cleanly disconnect frameworks and modules to exit the main process.',
 
     /**
@@ -11,8 +11,8 @@ export const exit = {
      * @param {any} Hexley - The main Hexley global object.
      * @param {string[]} args - The arguments passed to the command.
      */
-    main(Hexley: any, args: string[]) {
-        Hexley.frameworks.hexShell.shutdownGracefully(Hexley);
+    async main(Hexley: any, args: string[]) {
+        await Hexley.frameworks.hexShell.shutdownGracefully(Hexley);
     }
     
 };

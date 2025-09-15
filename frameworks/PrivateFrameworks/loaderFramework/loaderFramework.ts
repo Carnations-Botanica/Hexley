@@ -29,6 +29,7 @@ interface ModulePlist {
         canInitSlashCommands?: boolean;
         [key: string]: any;
     };
+    'Module Environment'?: { [key: string]: string };
     'Module Settings'?: {
         moduleEntryPoint: string;
         dependsDiscordFramework?: boolean;
@@ -206,14 +207,25 @@ export const loaderFramework = {
 
             if (entryPointName) {
                 try {
-                    Hexley.log(`${Hexley.frameworks.aurora.colorText('[loaderFramework/_handleModuleLoad]', this.loaderColor)} Attempting to load and execute entry point for "${entry.Name}"...`);
                     const importedFile = await import(mainFilePath);
                     const moduleObject = importedFile[entry.Name];
                     const entryPointFunction = moduleObject?.[entryPointName];
 
+                    Hexley.log(`${Hexley.frameworks.aurora.colorText('[loaderFramework/_handleModuleLoad]', this.loaderLight)} Checking for Module Environment Data in "${entry.Name}"...`);
+                    const moduleEnv = parsedData['Module Environment'];
+                    if (moduleEnv && Object.keys(moduleEnv).length > 0) {
+                        Hexley.log(`${Hexley.frameworks.aurora.colorText('[loaderFramework/_handleModuleLoad]', this.loaderLight)} Found Module Environment for "${entry.Name}". Attaching variables...`);
+                        moduleObject.config = {}; // Initialize config object
+                        for (const key in moduleEnv) {
+                            moduleObject.config[key] = moduleEnv[key];
+                            Hexley.log(`${Hexley.frameworks.aurora.colorText('[loaderFramework/_handleModuleLoad]', this.loaderLight)}   - Attached: ${key} = ${moduleEnv[key]}`);
+                        }
+                    }
+
+                    Hexley.log(`${Hexley.frameworks.aurora.colorText('[loaderFramework/_handleModuleLoad]', this.loaderColor)} Attempting to load and execute entry point for "${entry.Name}"...`);
                     if (typeof entryPointFunction === 'function') {
                         Hexley.modules[entry.Name] = moduleObject;
-                        entryPointFunction.call(moduleObject, Hexley);
+                        await entryPointFunction.call(moduleObject, Hexley); // force one at a time
                         Hexley.log(`${Hexley.frameworks.aurora.colorText('[loaderFramework/_handleModuleLoad]', this.loaderColor)} Successfully executed entry point "${entryPointName}" for module "${entry.Name}".`);
                     } else {
                         throw new Error(`Entry point "${entryPointName}" is not a function in module "${entry.Name}".`);

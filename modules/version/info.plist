@@ -20,6 +20,8 @@
 		<key>canInitSlashCommands</key>
 		<true/>
 	</dict>
+	<key>Module Environment</key>
+	<dict/>
 	<key>Module Settings</key>
 	<dict>
 		<key>moduleEntryPoint</key>

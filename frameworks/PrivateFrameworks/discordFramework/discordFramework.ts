@@ -275,6 +275,117 @@ export const discordFramework = {
     },
 
     /**
+     * Lists all slash commands for the guild.
+     * @param {any} Hexley - The main Hexley global object for logging.
+     */
+    async listSlashCommands(Hexley: any) {
+        if (!this.client || !this.guild) {
+            Hexley.log(`${Hexley.frameworks.aurora.colorText('[discordFramework/listSlashCommands]', Hexley.frameworks.aurora.tintBlurpleBright)} Error: Cannot list slash commands because the client or guild is not ready.`);
+            return;
+        }
+
+        try {
+            const commands = await this.guild.commands.fetch();
+            if (commands.size === 0) {
+                console.log("No slash commands found for this guild.");
+                return;
+            }
+
+            console.log("Slash Commands:");
+            commands.forEach(command => {
+                console.log(`- ${command.name} (ID: ${command.id})`);
+            });
+        } catch (error) {
+            Hexley.log(`${Hexley.frameworks.aurora.colorText('[discordFramework/listSlashCommands]', Hexley.frameworks.aurora.tintBlurpleBright)} Error occurred while listing slash commands:`);
+            console.error(error);
+        }
+    },
+
+    /**
+     * Removes a slash command from the guild.
+     * @param {any} Hexley - The main Hexley global object for logging.
+     * @param {string} commandId - The ID of the command to remove.
+     * @returns {Promise<boolean>} A promise that resolves to true if the command was removed, and false otherwise.
+     */
+    async removeSlashCommand(Hexley: any, commandId: string): Promise<boolean> {
+        if (!this.client || !this.guild) {
+            Hexley.log(`${Hexley.frameworks.aurora.colorText('[discordFramework/removeSlashCommand]', Hexley.frameworks.aurora.tintBlurpleBright)} Error: Cannot remove slash command because the client or guild is not ready.`);
+            return false;
+        }
+
+        try {
+            await this.guild.commands.delete(commandId);
+            Hexley.log(`${Hexley.frameworks.aurora.colorText('[discordFramework/removeSlashCommand]', Hexley.frameworks.aurora.tintBlurple)} Successfully removed slash command with ID: ${commandId}`);
+            return true;
+        } catch (error) {
+            Hexley.log(`${Hexley.frameworks.aurora.colorText('[discordFramework/removeSlashCommand]', Hexley.frameworks.aurora.tintBlurpleBright)} Error occurred while removing slash command with ID ${commandId}:`);
+            console.error(error);
+            return false;
+        }
+    },
+
+    /**
+     * Fetches a structured list of all channels in the guild.
+     * @param {any} Hexley - The main Hexley global object.
+     * @returns {Promise<object|null>} A promise that resolves to an object with structured channel data, or null if an error occurs.
+     */
+    async listChannels(Hexley: any): Promise<object | null> {
+        if (!this.guild) {
+            Hexley.log(`${Hexley.frameworks.aurora.colorText('[discordFramework/listChannels]', Hexley.frameworks.aurora.tintBlurpleBright)} Error: Guild not available.`);
+            return null;
+        }
+
+        const guildChannels = this.guild.channels.cache;
+
+        const channelData: any = {
+            guild: { name: this.guild.name, id: this.guild.id },
+            categories: [],
+            ungrouped: {
+                textChannels: [],
+                voiceChannels: []
+            }
+        };
+
+        // Process categories and their children
+        guildChannels.filter(c => c.type === 4).sort((a, b) => (a as any).position - (b as any).position).forEach(category => {
+            const textChannels = guildChannels.filter(c => c.parentId === category.id && c.type === 0).sort((a, b) => (a as any).position - (b as any).position);
+            const voiceChannels = guildChannels.filter(c => c.parentId === category.id && c.type === 2).sort((a, b) => (a as any).position - (b as any).position);
+            
+            channelData.categories.push({
+                name: category.name,
+                id: category.id,
+                textChannels: textChannels.map((c: any) => ({ name: c.name, id: c.id })),
+                voiceChannels: voiceChannels.map((c: any) => ({ name: c.name, id: c.id }))
+            });
+        });
+        
+        // Process ungrouped channels
+        guildChannels.filter(c => c.type === 0 && !c.parent).sort((a, b) => (a as any).position - (b as any).position)
+            .forEach((c: any) => channelData.ungrouped.textChannels.push({ name: c.name, id: c.id }));
+            
+        guildChannels.filter(c => c.type === 2 && !c.parent).sort((a, b) => (a as any).position - (b as any).position)
+            .forEach((c: any) => channelData.ungrouped.voiceChannels.push({ name: c.name, id: c.id }));
+
+        return channelData;
+    },
+
+    /**
+     * Fetches a guild member by their ID.
+     * @param {string} userId - The ID of the user to fetch.
+     * @returns {Promise<GuildMember | null>} A promise that resolves to the GuildMember object or null if not found.
+     */
+    async getGuildMember(userId: string): Promise<GuildMember | null> {
+        if (!this.guild) {
+            return null;
+        }
+        try {
+            return await this.guild.members.fetch(userId);
+        } catch (error) {
+            return null;
+        }
+    },
+
+    /**
      * Gets the highest role color of a guild member.
      * @param {GuildMember} member - The guild member to get the role color for.
      * @returns {string} The hex color of the highest role, or a default color.

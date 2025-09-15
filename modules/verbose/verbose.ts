@@ -1,5 +1,27 @@
 import { Events, EmbedBuilder, type Message } from 'discord.js';
 
+// Determine the color based on the time of day, basic 4 color gradient of sky
+const getTimeOfDayColor = (date: Date) => {
+
+    const hour = date.getHours();
+
+    // Nautical Sunrise (5 AM - 7 AM)
+    if (hour >= 5 && hour < 8) {
+        return '#FF7F50'; // Coral (bright orange)
+    }
+    // Sunrise (8 AM - 11 AM)
+    if (hour >= 8 && hour < 12) {
+        return '#FFD700'; // Gold (yellowish)
+    }
+    // Midday (12 PM - 5 PM)
+    if (hour >= 12 && hour < 18) {
+        return '#FF4500'; // OrangeRed (dark orangeish)
+    }
+    // Night (6 PM - 4 AM)
+    return '#708090'; // SlateGray (grayish blueish)
+
+};
+
 /**
  * The globally accessible module object.
  */
@@ -20,16 +42,27 @@ export const verbose = {
             const FOCUS_ENABLED =  true;
 
             Hexley.frameworks.discord.client.on(Events.MessageCreate, async (message: Message) => {
-                if (!message.guild) return;
+                if (!message.guild || !message.member) return;
 
                 if (!FOCUS_ENABLED || message.guild.id === process.env.GUILD_ID) {
-                    const currentTime = new Date().toLocaleTimeString();
+                    const now = new Date();
+                    const currentTime = now.toLocaleTimeString();
+                    const timeColor = getTimeOfDayColor(now);
+                    const coloredTime = Hexley.frameworks.aurora.colorText(currentTime, timeColor);
+
+                    const channel: any = message.channel;
+                    const channelName = channel.name || 'Unknown Channel';
+                    const channelColor = channel.type === 2 ? '#23E0AE' : '#ADFCFF';
+                    const coloredChannelName = Hexley.frameworks.aurora.colorText(channelName, channelColor);
+
                     const guildName = message.guild.name;
-                    const channelName = (message.channel as any).name || 'Unknown Channel';
-                    const userName = message.author.tag;
                     const userId = message.author.id;
                     const attachments = message.attachments;
                     let content = message.content;
+
+                    // Get user's role color and apply it to their name
+                    const userColor = Hexley.frameworks.discord.getUserRoleColor(message.member);
+                    const coloredUserName = Hexley.frameworks.aurora.colorText(message.author.tag, userColor);
 
                     if (attachments.size > 0) {
                         const attachmentText = attachments.size === 1 
@@ -44,7 +77,7 @@ export const verbose = {
                         content = content.trim() ? `${content} [Embed]` : '[Embed]';
                     }
 
-                    Hexley.log(`${Hexley.frameworks.aurora.colorText('[verbose]', this.moduleColor)} [#${channelName} | ${currentTime}] [${userId} (${userName})]: ${content}`);
+                    Hexley.log(`${Hexley.frameworks.aurora.colorText('[verbose]', this.moduleColor)} [ ${coloredTime} | #${coloredChannelName} ] [ ${coloredUserName} (${userId}) ]: ${content}`);
                 }
             });
         }
