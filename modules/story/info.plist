@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>Module Name</key>
+    <string>story</string>
+    <key>Module Description</key>
+    <string>Gives users in The Botanica to participate in the Story minigame.</string>
+    <key>Module Version</key>
+    <string>1.0.0</string>
+    <key>Module Identifier</key>
+    <string>hex.carnations.story</string>
+    <key>Module Structure</key>
+    <dict>
+      <key>Main</key>
+      <string>story.ts</string>
+    </dict>
+    <key>Module Abilities</key>
+    <dict>
+      <key>canInitSlashCommands</key>
+      <true/>
+    </dict>
+    <key>Module Environment</key>
+    <dict/>
+    <key>Module Settings</key>
+    <dict>
+      <key>moduleEntryPoint</key>
+      <string>storyInit</string>
+      <key>dependsDiscordFramework</key>
+      <true/>
+      <key>canUseDiscord</key>
+      <true/>
+      <key>hasPreviousInit</key>
+      <true/>
+      <key>debugMode</key>
+      <false/>
+    </dict>
+    <key>Module Commands</key>
+    <dict>
+      <key>storyadddatabase</key>
+      <string>Add a word database for the story module!</string>
+      <key>storyhighscore</key>
+      <string>View the high score story for the story module!</string>
+      <key>story</key>
+      <string>View the info on the story module!</string>
+      <key>storycurrentstory</key>
+      <string>View the current story for the story module!</string>
+      <key>storyupdatexplossdamper</key>
+      <string>Update the xp loss damper for the story module!</string>
+      <key>storyupdatexpgaindamper</key>
+      <string>Update the xp gain damper for the story module!</string>
+      <key>storyupdatexpfrequencyniche</key>
+      <string>Update the xp frequency niche for the story module!</string>
+    </dict>
+    <key>Module Command Arguments</key>
+    <dict>
+      <key>storyadddatabase</key>
+      <string>file</string>
+      <key>storyupdatexplossdamper</key>
+      <string>amount</string>
+      <key>storyupdatexpgaindamper</key>
+      <string>amount</string>
+      <key>storyupdatexpfrequencyniche</key>
+      <string>word, frequency</string>
+    </dict>
+    <key>Module Command Arg Type</key>
+    <dict>
+      <key>file</key>
+      <integer>3</integer>
+      <key>amount</key>
+      <integer>4</integer>
+      <key>frequency</key>
+      <integer>4</integer>
+      <key>word</key>
+      <integer>3</integer>
+    </dict>
+    <key>Module Command Arg Descriptions</key>
+    <dict>
+      <key>file</key>
+      <string>VFS file path for the words database to add, takes a String</string>
+      <key>amount</key>
+      <string>Amount of XP to add to the loss damper, takes a Number</string>
+      <key>frequency</key>
+      <string>Frequency of the word to add to the frequency niche, takes a Number</string>
+      <key>word</key>
+      <string>Word to add to the frequency niche, takes a String</string>
+    </dict>
+    <key>Module Command Arg Requirement</key>
+    <dict>
+      <key>file</key>
+      <true/>
+      <key>amount</key>
+      <true/>
+      <key>frequency</key>
+      <false/>
+      <key>word</key>
+      <false/>
+    </dict>
+  </dict>
+</plist>
