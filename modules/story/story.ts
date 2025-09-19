@@ -167,7 +167,7 @@ export const story = {
 
     if (valid) {
       if (storyDB.last_user === message.author.id) {
-        valid = false;
+        //valid = false;
         angryMessage = `<@${message.author.id}> you can't add to the story twice in a row!`;
         twiceInARow = true;
       }
@@ -189,7 +189,11 @@ export const story = {
           );
       } else {
         valid = true;
-        frequency = result.frequency;
+        if (!result || !result.frequency) {
+          frequency = this.the;
+        } else {
+          frequency = result.frequency;
+        }
 
         if (Hexley.debugMode)
           Hexley.log(
@@ -203,7 +207,7 @@ export const story = {
         .split(" ")
         .slice(-30);
       const last_30_items_string = last_30_items.join(" ");
-      const sendMessage = `"${last_30_items_string}". Could you come up with the next words? It is fine to add significant info, or finish my thought, or adding unnecessary information. Nothing is a typo. The sentence is not abstract and has no deeper meaning and has no surrealness and has no nonsensicalness. It's supposed to be incomplete. It is not OK for the latest word to not fit with the previous. You cannot fix previous words. The sentence I wrote must make sense, if it doesn't say BAD, but like I said, if it could be fixed then it's fine. You cannot assume context. If it is nonsensical, say BAD. If you add more words, say GOOD, if not, say BAD. Say why.`;
+      const sendMessage = `"${last_30_items_string}". Could you come up with the next words? It is fine to add significant info, or finish my thought, or adding unnecessary information. Nothing is a typo. The sentence is not abstract and has no deeper meaning and has no surrealness and has no nonsensicalness and has no jumbledness. It's supposed to be incomplete. It is not OK for the latest word to not fit with the previous. You cannot fix previous words, nor add to previous words. The sentence I wrote must make sense, if it doesn't say BAD, but like I said, if it could be fixed then it's fine. You cannot assume context. BE VERY HARSH, even if it's slightly off say BAD. If it is nonsensical, say BAD. If you add more words, say GOOD, if not, say BAD. Say why.`;
 
       const ai_opinion = await Hexley.frameworks.llmFramework.chat(
         Hexley,
