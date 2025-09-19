@@ -34,7 +34,7 @@
 		<key>canUseDiscord</key>
 		<true/>
 		<key>hasPreviousInit</key>
-		<true/>
+		<false/>
 		<key>debugMode</key>
 		<false/>
 	</dict>
