@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+    "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Framework Type</key>
+	<string>Public</string>
+	<key>Framework Entry</key>
+	<string>initializeLLM</string>
+	<key>Framework Name</key>
+	<string>llmFramework</string>
+	<key>Framework Description</key>
+	<string>The LLM framework to talk to a chatbot</string>
+	<key>Framework Version</key>
+	<string>1.0.0</string>
+	<key>Framework Identifier</key>
+	<string>hex.carnations.llmFramework</string>
+	<key>Framework Structure</key>
+	<dict>
+		<key>Main</key>
+		<string>llmFramework.ts</string>
+	</dict>
+</dict>
+</plist>
