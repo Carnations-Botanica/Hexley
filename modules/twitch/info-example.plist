@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Module Name</key>
+	<string>twitch</string>
+	<key>Module Description</key>
+	<string>Broadcast data from the Twitch API to Discord!</string>
+	<key>Module Version</key>
+	<string>1.0.0</string>
+	<key>Module Identifier</key>
+	<string>hex.carnations.twitch</string>
+	<key>Module Structure</key>
+	<dict>
+		<key>Main</key>
+		<string>twitch.ts</string>
+	</dict>
+	<key>Module Abilities</key>
+	<dict>
+		<key>canInitSlashCommands</key>
+		<true/>
+	</dict>
+	<key>Module Environment</key>
+	<dict>
+		<key>TWITCH_CLIENT_ID</key>
+		<string>YOUR_CLIENT_ID</string>
+		<key>TWITCH_CLIENT_SECRET</key>
+		<string>YOUR_CLIENT_SECRET</string>
+		<key>TWITCH_USER_LOGIN</key>
+		<string>TWITCH_USERNAME_TARGET</string>
+		<key>TWITCH_CALLBACK_URL</key>
+		<string>YOUR_API_CALLBACK_URL</string>
+		<key>TWITCH_WEBSOCKET_SECRET</key>
+		<string>YOUR_STRING_HERE</string>
+		<key>TWITCH_ANNOUNCEMENT_CHANNELID</key>
+		<string>CHANNELID</string>
+		<key>TWITCH_ENJOYER_ROLEID</key>
+		<string>ROLEID</string>
+	</dict>
+	<key>Module Settings</key>
+	<dict>
+		<key>moduleEntryPoint</key>
+		<string>twitchInit</string>
+		<key>dependsDiscordFramework</key>
+		<true/>
+		<key>canUseDiscord</key>
+		<true/>
+		<key>hasPreviousInit</key>
+		<false/>
+		<key>debugMode</key>
+		<false/>
+	</dict>
+	<key>Module Commands</key>
+	<dict>
+		<key>twitch</key>
+		<string>Ask Hexley for information on the current Twitch data!</string>
+	</dict>
+	<key>Module Command Arguments</key>
+	<dict>
+		<key>twitch</key>
+		<string>None</string>
+	</dict>
+	<key>Module Command Arg Type</key>
+	<dict/>
+	<key>Module Command Arg Descriptions</key>
+	<dict/>
+	<key>Module Command Arg Requirement</key>
+	<dict/>
+</dict>
+</plist>

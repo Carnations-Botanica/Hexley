@@ -44,14 +44,14 @@ export const databaseFramework = {
      * @param {any} Hexley - The main Hexley global object.
      */
     async _initializeSequelizer(Hexley: any) {
-        const { DB_USER, DB_NAME, DB_PASSWORD, DB_HOST, DB_PORT } = process.env;
+        const { DB_USER, DB_NAME, DB_PASS, DB_HOST, DB_PORT } = process.env;
 
-        if (!DB_USER || !DB_NAME || !DB_PASSWORD || !DB_HOST || !DB_PORT) {
+        if (!DB_USER || !DB_NAME || !DB_PASS || !DB_HOST || !DB_PORT) {
             console.error(Hexley.frameworks.aurora.colorText('[databaseFramework/_initializeSequelizer] Fatal: One or more database environment variables are missing.', Hexley.frameworks.aurora.tintRedBright));
             process.exit(1);
         }
 
-        await this._connectToDatabase(Hexley, DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, parseInt(DB_PORT, 10));
+        await this._connectToDatabase(Hexley, DB_NAME, DB_USER, DB_PASS, DB_HOST, parseInt(DB_PORT, 10));
 
         Hexley.databaseLoaded = true;
     },

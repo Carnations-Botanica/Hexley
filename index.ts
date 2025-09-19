@@ -321,7 +321,7 @@ const resourcesToScan = [
     {
         name: 'Private Frameworks',
         path: Hexley.privateFrameworksRootPath,
-        ignoreList: ['filesystemFramework', 'hexShellFramework', 'auroraFramework', 'discordFramework', 'loaderFramework', 'registryFramework', 'databaseFramework', 'versionFramework', '.DS_Store'],
+        ignoreList: ['endpointFramework', 'filesystemFramework', 'hexShellFramework', 'auroraFramework', 'discordFramework', 'loaderFramework', 'registryFramework', 'databaseFramework', 'versionFramework', '.DS_Store'],
         counter: 'frameworksLoadedCount'
     },
     {
@@ -352,6 +352,12 @@ if (Hexley.debugMode && Hexley.databaseMode === "Local") {
     Hexley.databaseLocalDir = path.join(Hexley.filesystemRootDir, 'var', 'db.json');
     log(`[hexleyCore/Dbg] Hexley.databaseLocalDir is: ${Hexley.databaseLocalDir}`);
 }
+
+// Endpoint Framework Initialization Logic
+log(`${Hexley.frameworks.aurora.colorText('[hexleyCore]', Hexley.frameworks.aurora.tintGray)} Loading Endpoint framework...`);
+const { endpointFramework } = await import(path.join(Hexley.privateFrameworksRootPath, 'endpointFramework/endpointFramework.ts'));
+Hexley.frameworks.endpoint = endpointFramework;
+Hexley.frameworks.endpoint.initializeEndpoint(Hexley);
 
 // Conditional hexShell Module Initialization
 if (Hexley.hexShellLoad) {
@@ -539,7 +545,7 @@ for (const resourceType of resourcesToScan) {
 // Final Debug Block
 let wantDumpDebugBlock = false;
 if (Hexley.buildType === "INTERNAL") {
-    wantDumpDebugBlock = true;
+    wantDumpDebugBlock = false; // currently disabled internally
 }
 
 if (Hexley.debugMode && wantDumpDebugBlock) {

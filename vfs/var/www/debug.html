@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hexley API Test Client</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: auto; padding: 20px; background-color: #f4f4f9; }
+        .container { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { color: #333; }
+        label { display: block; margin-top: 10px; font-weight: bold; }
+        input[type="text"], textarea { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px; }
+        textarea { height: 150px; }
+        button { margin-top: 20px; padding: 10px 15px; border: none; background-color: #5a189a; color: white; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        button:hover { background-color: #7b43a2; }
+        pre { background: #333; color: #f4f4f9; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        #log { margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Hexley API Endpoint Tester</h1>
+    <p>Use this tool to send a POST request with JSON data to Hexley's API endpoints.</p>
+
+    <label for="url">API Endpoint URL:</label>
+    <input type="text" id="url" value="https://127.0.0.1:443/api/github">
+
+    <label for="jsonData">JSON Body:</label>
+    <textarea id="jsonData">{
+        "event": {
+            "user_id": "12345",
+            "user_name": "testuser",
+            "type": "test_event"
+        }
+    }</textarea>
+
+    <button onclick="sendPostRequest()">Send POST Request</button>
+
+    <div id="log">
+        <label>Response Log:</label>
+        <pre id="responseLog"></pre>
+    </div>
+</div>
+
+<script>
+    async function sendPostRequest() {
+        const url = document.getElementById('url').value;
+        const jsonData = document.getElementById('jsonData').value;
+        const responseLog = document.getElementById('responseLog');
+
+        responseLog.textContent = 'Sending request...';
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: jsonData,
+            });
+
+            const responseText = await response.text();
+            responseLog.textContent = `Status: ${response.status} ${response.statusText}\n\nBody:\n${responseText}`;
+
+        } catch (error) {
+            responseLog.textContent = `Error: ${error.message}`;
+            console.error('Fetch error:', error);
+        }
+    }
+</script>
+
+</body>
+</html>

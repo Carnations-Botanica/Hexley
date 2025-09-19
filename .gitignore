@@ -43,3 +43,7 @@ vfs/var/log/hexleyCore-*.log
 vfs/home/royalgraphx/*
 vfs/var/db.json
 vfs/etc/passwd
+vfs/var/www/server.crt
+vfs/var/www/server.key
+modules/twitch/info.plist
+modules/version/info.plist

@@ -209,21 +209,24 @@ export const hexShellFramework = {
      * @param {any} Hexley - The main Hexley global object.
      */
     async shutdownGracefully(Hexley: any) {
-        console.log("\nReceived shutdown signal.");
+        console.log("\n[shutdown] Received shutdown signal. Cleaning up...");
 
-        if (Hexley.discordLoaded) {
-            await Hexley.frameworks.discord.client.destroy()
-                .then(() => {
-                    console.log("Discord client successfully disconnected.");
-                    process.exit(0);
-                })
-                .catch((error: any) => {
-                    console.error("Error while disconnecting Discord client:", error);
-                    process.exit(1);
-                });
-        } else {
-            process.exit(0);
+        // Twitch Module Shutdown
+        if (Hexley.modules && Hexley.modules.twitch && typeof Hexley.modules.twitch.shutdown === 'function') {
+            Hexley.log("[shutdown] Shutting down Twitch module...");
+            await Hexley.modules.twitch.shutdown(Hexley);
+            Hexley.log("[shutdown] Twitch module shutdown complete.");
         }
+
+        // Discord Module Shutdown
+        if (Hexley.discordLoaded) {
+            Hexley.log("[shutdown] Disconnecting Discord client...");
+            await Hexley.frameworks.discord.client.destroy();
+            Hexley.log("[shutdown] Discord client successfully disconnected.");
+        }
+        
+        Hexley.log("[shutdown] All modules shut down. Exiting now.");
+        process.exit(0);
     }
 
 };
