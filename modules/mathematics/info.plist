@@ -29,6 +29,8 @@
     </dict>
     <key>Module Settings</key>
     <dict>
+      <key>enabled</key>
+      <false/>
       <key>moduleEntryPoint</key>
       <string>mathematicsInit</string>
       <key>dependsDiscordFramework</key>

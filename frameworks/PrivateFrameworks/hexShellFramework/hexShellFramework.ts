@@ -224,6 +224,11 @@ export const hexShellFramework = {
             await Hexley.frameworks.discord.client.destroy();
             Hexley.log("[shutdown] Discord client successfully disconnected.");
         }
+
+        // Clear Version Data
+        if (Hexley.versionLoaded && typeof Hexley.frameworks.version.shutdown === 'function') {
+            await Hexley.frameworks.version.shutdown(Hexley);
+        }
         
         Hexley.log("[shutdown] All modules shut down. Exiting now.");
         process.exit(0);

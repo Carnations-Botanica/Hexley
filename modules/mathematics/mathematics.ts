@@ -5,7 +5,7 @@
 export const mathematics = {
 
     // Module Logging Color
-    moduleColor: "#5a189a",
+    moduleColor: "#e26d5c",
 
     // Define the config object so TypeScript knows it exists.
     config: {} as { [key: string]: any },

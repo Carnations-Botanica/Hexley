@@ -8,7 +8,7 @@ import fs from 'fs';
 export const databaseFramework = {
 
     // Framework Logging Color
-    frameworkColor: "#5600db",
+    frameworkColor: "#b6ccfe",
 
     // Database Property
     _localDB: {} as { [tableName: string]: any[] },

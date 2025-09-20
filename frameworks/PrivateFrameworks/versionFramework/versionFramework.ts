@@ -220,5 +220,18 @@ export const versionFramework = {
         
         return { name: name, type: 'Unknown', version: Hexley.versions[name] };
     },
+    /**
+     * Shutdown routine where we clean up the database.
+     * @param {any} Hexley - The main Hexley global object.
+     */
+    async shutdown(Hexley: any) {
+        if (Hexley.databaseLoaded) {
+            const versionTable = {
+                options: { tableName: 'versionTable' }
+            };
+            await Hexley.frameworks.database.resetTableDefinition(Hexley, process.env.DB_NAME, versionTable);
+            Hexley.log(`${Hexley.frameworks.aurora.colorText('[versionFramework/shutdown]', this.frameworkColor)} Version table cleared.`);
+        }
+    }
 
 };

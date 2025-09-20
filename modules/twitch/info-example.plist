@@ -39,6 +39,8 @@
 	</dict>
 	<key>Module Settings</key>
 	<dict>
+		<key>enabled</key>
+		<false/>
 		<key>moduleEntryPoint</key>
 		<string>twitchInit</string>
 		<key>dependsDiscordFramework</key>

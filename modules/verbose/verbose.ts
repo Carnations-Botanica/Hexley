@@ -7,7 +7,7 @@ const getTimeOfDayColor = (date: Date) => {
 
     // Nautical Sunrise (5 AM - 7 AM)
     if (hour >= 5 && hour < 8) {
-        return '#FF7F50'; // Coral (bright orange)
+        return '#F7633D'; // Coral (bright orange)
     }
     // Sunrise (8 AM - 11 AM)
     if (hour >= 8 && hour < 12) {
@@ -15,7 +15,7 @@ const getTimeOfDayColor = (date: Date) => {
     }
     // Midday (12 PM - 5 PM)
     if (hour >= 12 && hour < 18) {
-        return '#FF4500'; // OrangeRed (dark orangeish)
+        return '#FFBE1D'; // Orange (dark orangeish)
     }
     // Night (6 PM - 4 AM)
     return '#708090'; // SlateGray (grayish blueish)

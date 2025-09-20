@@ -31,6 +31,7 @@ interface ModulePlist {
     };
     'Module Environment'?: { [key: string]: string };
     'Module Settings'?: {
+        enabled: boolean;
         moduleEntryPoint: string;
         dependsDiscordFramework?: boolean;
         canUseDiscord?: boolean;
@@ -181,6 +182,12 @@ export const loaderFramework = {
                 'Command Arg Descriptions': parsedData['Module Command Arg Descriptions'],
                 'Command Arg Requirement': parsedData['Module Command Arg Requirement']
             };
+            
+            // Check if the module is enabled
+            if (entry.Settings?.enabled === false) {
+                Hexley.log(`${Hexley.frameworks.aurora.colorText('[loaderFramework/_handleModuleLoad]', this.loaderColor)} Module "${entry.Name}" is disabled. Skipping initialization.`);
+                return true; // Return true to not indicate a failure
+            }
             
             const canUseDiscord = entry.Settings?.canUseDiscord;
             const dependsDiscordFramework = entry.Settings?.dependsDiscordFramework;
