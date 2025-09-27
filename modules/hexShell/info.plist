@@ -26,10 +26,8 @@
 	<dict>
 		<key>moduleEntryPoint</key>
 		<string>hexShellInit</string>
-		<key>dependsDiscordFramework</key>
-		<false/>
-		<key>canUseDiscord</key>
-		<false/>
+		<key>depsOn</key>
+		<string></string>
 		<key>hasPreviousInit</key>
 		<false/>
 		<key>debugMode</key>

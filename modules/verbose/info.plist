@@ -28,10 +28,8 @@
 		<true/>
 		<key>moduleEntryPoint</key>
 		<string>verboseInit</string>
-		<key>dependsDiscordFramework</key>
-		<true/>
-		<key>canUseDiscord</key>
-		<true/>
+		<key>depsOn</key>
+		<string>discordFramework</string>
 		<key>hasPreviousInit</key>
 		<false/>
 		<key>debugMode</key>

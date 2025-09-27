@@ -1,0 +1,212 @@
+import fs from 'fs';
+import path from 'path';
+import plist from 'plist';
+
+// ANSI escape codes for text styling
+const bold = '\x1b[1m';
+const reset = '\x1b[0m';
+
+/**
+ * The modprobe command source code.
+ */
+export const modprobe = {
+    description: 'Manages and lists modules in the registry.',
+    extendedDescription: 'Module Control Program (MCP). Use `modprobe help` for a list of commands.',
+
+    /**
+     * Displays the help information for the modprobe command.
+     */
+    _displayHelp(Hexley: any) {
+        console.log(`${bold}Module Control Program (MCP)${reset}`);
+        console.log("This command provides the ability to interface with the module registry.");
+        console.log("Version 1.0.0\n");
+        console.log("Use the following commands to execute actions:");
+        console.log(`list             | Provides a list of all modules and their status.`);
+        console.log(`info <module>    | Query a Module for its info.plist for more information.`);
+        console.log(`enable <module>  | Enables a module by setting its 'enabled' key to true.`);
+        console.log(`disable <module> | Disables a module by setting its 'enabled' key to false.`);
+    },
+    
+    /**
+     * Recursively prints a dictionary with colored keys.
+     * @param {any} aurora - The aurora framework instance.
+     * @param {object} dict - The dictionary to print.
+     * @param {string} indent - The indentation string.
+     */
+    _printDictionary(aurora: any, dict: any, indent = '  ') {
+        for (const key in dict) {
+            const value = dict[key];
+            if (typeof value === 'object' && value !== null) {
+                console.log(`${indent}${aurora.colorText(key, '#868686')}:`);
+                this._printDictionary(aurora, value, indent + '  ');
+            } else {
+                console.log(`${indent}${aurora.colorText(key, '#868686')}: ${value}`);
+            }
+        }
+    },
+
+    /**
+     * Toggles the enabled state of a module.
+     * @param {any} Hexley - The main Hexley global object.
+     * @param {string} moduleName - The name of the module to modify.
+     * @param {boolean} state - The state to set (true for enable, false for disable).
+     */
+    _toggleModule(Hexley: any, moduleName: string | undefined, state: boolean) {
+        if (!moduleName) {
+            const action = state ? 'enable' : 'disable';
+            console.log(`Usage: modprobe ${action} <module_name>`);
+            return;
+        }
+
+        const plistPath = path.join(Hexley.modulesRootPath, moduleName, 'info.plist');
+        try {
+            const plistContent = fs.readFileSync(plistPath, 'utf8');
+            const parsed = plist.parse(plistContent) as any;
+
+            if (!parsed['Module Settings']) {
+                parsed['Module Settings'] = {};
+            }
+            
+            parsed['Module Settings'].enabled = state;
+
+            const updatedPlist = plist.build(parsed);
+            fs.writeFileSync(plistPath, updatedPlist);
+
+            const actionText = state ? 'enabled' : 'disabled';
+            console.log(`Module '${moduleName}' has been ${actionText}.`);
+            console.log("Please restart Hexley for the changes to take effect.");
+
+        } catch (e) {
+            console.log(`Error modifying module '${moduleName}': Could not read its info.plist.`);
+        }
+    },
+
+    /**
+     * Main entry point for the modprobe command.
+     * @param {any} Hexley - The main Hexley global object.
+     * @param {string[]} args - The arguments passed to the command.
+     */
+    main(Hexley: any, args: string[]) {
+        const command = args[0] || 'list';
+        const aurora = Hexley.frameworks.aurora;
+
+        switch (command) {
+            case 'help':
+                this._displayHelp(Hexley);
+                break;
+
+            case 'list':
+                const loadedModuleNames = Object.keys(Hexley.modules);
+                const moduleDirs = fs.readdirSync(Hexley.modulesRootPath).filter(f => 
+                    fs.statSync(path.join(Hexley.modulesRootPath, f)).isDirectory());
+
+                if (moduleDirs.length === 0) {
+                    console.log("No modules found in the modules directory.");
+                    return;
+                }
+
+                console.log(`Listing all ${moduleDirs.length} module/s on the filesystem:\n`);
+
+                const moduleDetails = moduleDirs.map(dirName => {
+                    const plistPath = path.join(Hexley.modulesRootPath, dirName, 'info.plist');
+                    try {
+                        const plistContent = fs.readFileSync(plistPath, 'utf8');
+                        const parsed = plist.parse(plistContent) as any;
+                        return {
+                            Name: parsed['Module Name'] || dirName,
+                            Version: parsed['Module Version'] || 'N/A',
+                            Description: parsed['Module Description'] || 'No description.',
+                            isLoaded: loadedModuleNames.includes(parsed['Module Name'])
+                        };
+                    } catch (e) {
+                        return {
+                            Name: dirName,
+                            Version: 'N/A',
+                            Description: 'Could not read info.plist.',
+                            isLoaded: false
+                        };
+                    }
+                }).sort((a, b) => a.Name.localeCompare(b.Name));
+
+                moduleDetails.forEach((moduleInfo: any) => {
+                    const { Name, Version, Description, isLoaded } = moduleInfo;
+
+                    const coloredName = aurora.colorText(`${bold}${Name}${reset}`, '#F75456');
+                    const coloredVersion = aurora.colorText(`- ${Version}`, '#868686');
+                    console.log(`${coloredName} ${coloredVersion}`);
+
+                    const statusText = isLoaded ? '(Loaded)' : '(Unloaded)';
+                    const statusColor = isLoaded ? '#00ff00' : '#808080';
+                    const coloredStatus = aurora.colorText(statusText, statusColor);
+
+                    console.log(`  - ${Description} ${coloredStatus}\n`);
+                });
+                break;
+            
+            case 'info':
+                const moduleNameInfo = args[1];
+                if (!moduleNameInfo) {
+                    console.log("Usage: modprobe info <module_name>");
+                    return;
+                }
+
+                let moduleInfo = Hexley.frameworks.registry.getEntryByName(moduleNameInfo);
+
+                if (!moduleInfo) {
+                    const plistPath = path.join(Hexley.modulesRootPath, moduleNameInfo, 'info.plist');
+                    try {
+                        const plistContent = fs.readFileSync(plistPath, 'utf8');
+                        const parsed = plist.parse(plistContent) as any;
+                        moduleInfo = {
+                            Name: parsed['Module Name'],
+                            Version: parsed['Module Version'],
+                            Description: parsed['Module Description'],
+                            Identifier: parsed['Module Identifier'],
+                            ...parsed
+                        };
+                    } catch (e) {
+                        console.log(`Module '${moduleNameInfo}' not found in registry and could not read its info.plist.`);
+                        return;
+                    }
+                }
+                
+                const title = `${moduleInfo.Name} (v${moduleInfo.Version})`;
+                console.log(aurora.colorText(`${bold}${title}${reset}`, '#F75456'));
+                console.log(`Description: ${aurora.colorText(moduleInfo.Description, '#868686')}`);
+                console.log(`Identifier: ${aurora.colorText(moduleInfo.Identifier, '#868686')}`);
+                console.log("---");
+
+                for (const key in moduleInfo) {
+                    if (key !== 'Name' && key !== 'Version' && key !== 'Description' && key !== 'Identifier' && key !== 'Type') {
+                        const value = moduleInfo[key];
+                        console.log(aurora.colorText(`${bold}${key}:${reset}`, '#F75456'));
+                        if (typeof value === 'object' && value !== null) {
+                            this._printDictionary(aurora, value);
+                        } else {
+                            console.log(`  ${aurora.colorText(value, '#868686')}`);
+                        }
+                    }
+                }
+                break;
+
+            case 'enable':
+                this._toggleModule(Hexley, args[1], true);
+                break;
+                
+            case 'disable':
+                this._toggleModule(Hexley, args[1], false);
+                break;
+
+            case 'unload':
+            case 'load':
+            case 'reload':
+                console.log(`Command '${command}' is not yet implemented.`);
+                break;
+
+            default:
+                console.log(`Unknown command: '${command}'. Use 'modprobe help' for a list of commands.`);
+                break;
+        }
+    }
+
+};

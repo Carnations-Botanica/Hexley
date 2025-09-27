@@ -6,73 +6,158 @@ import path from 'path';
  */
 export const hmesg = {
     description: 'Displays the system message buffer.',
-    extendedDescription: 'Prints the kernel ring buffer messages. Can be filtered by search term and line count.',
+    extendedDescription: 'Prints kernel ring buffer messages. Use `hmesg help` for more options.',
 
     /**
-     * Main entry point for the hmesg command.
-     * @param {any} Hexley - The main Hexley global object.
-     * @param {string[]} args - The arguments passed to the command.
+     * Displays the help information for the hmesg command.
      */
-    main(Hexley: any, args: string[]) {
-        const logDir = path.join(Hexley.filesystemRootDir, 'var', 'log');
-        const currentLogFile = Hexley.sessionLogFile;
+    _displayHelp() {
+        console.log("Hexley Message Buffer (hmesg)");
+        console.log("This command provides the ability to view and manage Hexley log files.\n");
+        console.log("Usage: hmesg [command] [options]\n");
+        console.log("Commands:");
+        console.log("  (no command)   | Displays the current session log.");
+        console.log("  list           | Lists all available log files.");
+        console.log("  view <log_id>  | Displays a specific log file. The ID is the date string from the filename.");
+        console.log("  purge          | Deletes all log files except for the current session.\n");
+        console.log("Options:");
+        console.log("  --previous            | Displays the previous session's log file.");
+        console.log("  --reverse             | Reverses the order of the log output (newest first).");
+        console.log("  -s, --search <term>   | Filter output for lines containing the search term.");
+        console.log("  -l, --length <lines>  | Specify the number of lines to display (default: 20).");
+    },
 
-        if (args.includes('--purge')) {
-            try {
-                const files = fs.readdirSync(logDir);
-                let purgedCount = 0;
-                for (const file of files) {
-                    const filePath = path.join(logDir, file);
-                    if (file.startsWith('hexleyCore-') && filePath !== currentLogFile) {
-                        fs.unlinkSync(filePath);
-                        purgedCount++;
-                    }
-                }
-                console.log(`Purged ${purgedCount} old log file(s).`);
-            } catch (error: any) {
-                console.log(`Error purging log files: ${error.message}`);
-            }
-            return;
-        }
-
-        if (!currentLogFile || !fs.existsSync(currentLogFile)) {
-            console.log("Error: Session log file not found.");
-            return;
-        }
-
+    /**
+     * Parses arguments for filters and options.
+     */
+    _parseFilters(args: string[]) {
         let searchTerm: string | null = null;
         let lineCount: number = 20;
+        let reverse = false;
+        let viewPrevious = false;
 
         // Parse arguments
         for (let i = 0; i < args.length; i++) {
             const arg = args[i];
-            if ((arg === '-s' || arg === '--search') && i + 1 < args.length) {
-                searchTerm = args[i + 1] as string;
-                i++; // Skip the next argument since we've consumed it
+            if (arg === '--reverse') {
+                reverse = true;
+            } else if (arg === '--previous') {
+                viewPrevious = true;
+            } else if ((arg === '-s' || arg === '--search') && i + 1 < args.length) {
+                searchTerm = args[++i] as string;
             } else if ((arg === '-l' || arg === '--length') && i + 1 < args.length) {
-                const count = parseInt(args[i + 1] as string, 10);
-                if (!isNaN(count)) {
-                    lineCount = count;
-                }
-                i++; // Skip the next argument
+                const count = parseInt(args[++i] as string, 10);
+                if (!isNaN(count)) lineCount = count;
             }
         }
-
+        return { searchTerm, lineCount, reverse, viewPrevious };
+    },
+    
+    /**
+     * Prints a given log file with optional filters.
+     */
+    _printLog(logPath: string, searchTerm: string | null, lineCount: number, reverse: boolean) {
         try {
-            const data = fs.readFileSync(currentLogFile, 'utf8');
+            const data = fs.readFileSync(logPath, 'utf8');
             let lines = data.trim().split('\n');
 
-            // Apply filters and limits
             if (searchTerm) {
-                lines = lines.filter(line => line.includes(searchTerm));
+                lines = lines.filter(line => line.includes(searchTerm!));
             }
 
-            const logLines = lines.slice(-lineCount);
+            // Correctly get the last `lineCount` lines by default
+            let logLines = lines.slice(-lineCount);
+
+            if (reverse) {
+                logLines.reverse();
+            }
 
             console.log(logLines.join('\n'));
-
         } catch (error: any) {
             console.log(`Error reading log file: ${error.message}`);
+        }
+    },
+
+    /**
+     * Main entry point for the hmesg command.
+     */
+    main(Hexley: any, args: string[]) {
+        const logDir = path.join(process.cwd(), 'vfs', 'var', 'log');
+        const command = args[0] && !args[0].startsWith('-') ? args[0] : null;
+
+        const { searchTerm, lineCount, reverse, viewPrevious } = this._parseFilters(args);
+
+        if (viewPrevious) {
+            const files = fs.readdirSync(logDir)
+                .filter(file => file.startsWith('hexleyCore-'))
+                .sort().reverse();
+            
+            if (files.length < 2) {
+                console.log("Error: No previous log file found.");
+                return;
+            }
+            const previousLogFile = path.join(logDir, files[1]);
+            this._printLog(previousLogFile, searchTerm, lineCount, reverse);
+            return;
+        }
+
+        switch (command) {
+            case 'help':
+                this._displayHelp();
+                break;
+            
+            case 'list':
+                const files = fs.readdirSync(logDir)
+                    .filter(file => file.startsWith('hexleyCore-'))
+                    .sort().reverse(); 
+                
+                console.log("Available Logs:");
+                files.forEach(file => {
+                    const dateStr = file.replace('hexleyCore-', '').replace('.log', '');
+                    const isCurrent = path.join(logDir, file) === Hexley.sessionLogFile;
+                    console.log(`- ${dateStr} ${isCurrent ? '(Current Session)' : ''}`);
+                });
+                break;
+
+            case 'view':
+                const logId = args[1];
+                if (!logId) {
+                    console.log("Usage: hmesg view <log_id>");
+                    return;
+                }
+                const logFile = path.join(logDir, `hexleyCore-${logId}.log`);
+                if (!fs.existsSync(logFile)) {
+                    console.log(`Error: Log file with ID '${logId}' not found.`);
+                    return;
+                }
+                const { searchTerm: searchView, lineCount: lineView, reverse: reverseView } = this._parseFilters(args.slice(2));
+                this._printLog(logFile, searchView, lineView, reverseView);
+                break;
+
+            case 'purge':
+                try {
+                    let purgedCount = 0;
+                    const allLogs = fs.readdirSync(logDir);
+                    for (const file of allLogs) {
+                        const filePath = path.join(logDir, file);
+                        if (file.startsWith('hexleyCore-') && filePath !== Hexley.sessionLogFile) {
+                            fs.unlinkSync(filePath);
+                            purgedCount++;
+                        }
+                    }
+                    console.log(`Purged ${purgedCount} old log file(s).`);
+                } catch (error: any) {
+                    console.log(`Error purging log files: ${error.message}`);
+                }
+                break;
+
+            default:
+                if (!Hexley.sessionLogFile || !fs.existsSync(Hexley.sessionLogFile)) {
+                    console.log("Error: Current session log file not found.");
+                    return;
+                }
+                this._printLog(Hexley.sessionLogFile, searchTerm, lineCount, reverse);
+                break;
         }
     }
     

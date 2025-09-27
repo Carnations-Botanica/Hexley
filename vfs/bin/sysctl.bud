@@ -1,0 +1,128 @@
+import path from 'path';
+
+// ANSI escape codes for text styling
+const bold = '\x1b[1m';
+const reset = '\x1b[0m';
+
+/**
+ * The sysctl command source code.
+ */
+export const sysctl = {
+    description: 'Displays information about the Bun runtime.',
+    extendedDescription: 'Use `sysctl <command>` to inspect/act on runtime data. Use `sysctl help` for commands.',
+
+    /**
+     * Displays the help information for the sysctl command.
+     */
+    _displayHelp(Hexley: any) {
+        const aurora = Hexley.frameworks.aurora;
+        console.log(`${bold}System Control (sysctl)${reset}`);
+        console.log("This command provides an interface to the Bun runtime cache.\n");
+        console.log("Use the following commands to execute actions:");
+        console.log(`imports        | Lists all non-node modules in the import cache.`);
+        console.log(`info <id>      | Provides detailed information for a specific module ID.`);
+        console.log(`purge <id>     | Removes a module from the Bun runtime cache.`);
+    },
+
+    /**
+     * Main entry point for the sysctl command.
+     * @param {any} Hexley - The main Hexley global object.
+     * @param {string[]} args - The arguments passed to the command.
+     */
+    main(Hexley: any, args: string[]) {
+        const command = args[0];
+        const aurora = Hexley.frameworks.aurora;
+        const importCache = require.cache;
+        const currentWorkingDirectory = process.cwd();
+
+        if (!command || command === 'help') {
+            this._displayHelp(Hexley);
+            return;
+        }
+
+        switch (command) {
+            case 'imports':
+                const cachedModulePaths = Object.keys(importCache);
+                const filteredModules = cachedModulePaths.filter(modulePath => 
+                    !path.relative(currentWorkingDirectory, modulePath).startsWith('node_modules'));
+
+                if (filteredModules.length === 0) {
+                    console.log("The import cache is empty (excluding node_modules).");
+                    return;
+                }
+
+                console.log(`${bold}Bun Runtime Import Cache:${reset}`);
+                console.log(`Found ${filteredModules.length} cached modules (excluding node_modules).\n`);
+                
+                filteredModules.forEach(modulePath => {
+                    const relativePath = path.relative(currentWorkingDirectory, modulePath);
+                    const moduleData: any = importCache[modulePath];
+                    const status = moduleData?.loaded ? aurora.colorText('Loaded', '#00ff00') : aurora.colorText('Not Loaded', '#ffff00');
+                    const childrenCount = moduleData?.children?.length || 0;
+
+                    console.log(`- ${aurora.colorText(relativePath, '#868686')} [${status}]`);
+                    console.log(`    ID: ${aurora.colorText(moduleData.id, '#868686')}`);
+                    console.log(`    Children: ${aurora.colorText(childrenCount, '#868686')}`);
+                });
+                break;
+
+            case 'info':
+                const relativePathId = args[1];
+                if (!relativePathId) {
+                    console.log("Usage: sysctl info <relative_path>");
+                    return;
+                }
+                
+                const absolutePathId = path.isAbsolute(relativePathId) ? relativePathId : path.join(currentWorkingDirectory, relativePathId);
+                const moduleData = importCache[absolutePathId];
+
+                if (!moduleData) {
+                    console.log(`No module found in cache with ID: ${absolutePathId}`);
+                    return;
+                }
+
+                console.log(aurora.colorText(`${bold}Module Info:${reset}`, '#F75456'));
+                console.log(`- ID:         ${aurora.colorText(moduleData.id, '#868686')}`);
+                console.log(`- Loaded:     ${moduleData.loaded ? aurora.colorText('Yes', '#00ff00') : aurora.colorText('No', '#ffff00')}`);
+                console.log(`- Children:   ${aurora.colorText(moduleData.children?.length || 0, '#868686')}`);
+                
+                if (moduleData.parent) {
+                    console.log(`- Parent ID:  ${aurora.colorText(moduleData.parent.id, '#868686')}`);
+                }
+                
+                if (moduleData.exports) {
+                    const exportKeys = Object.keys(moduleData.exports);
+                    console.log(`- Exports (${exportKeys.length}):`);
+                    exportKeys.forEach(key => {
+                        console.log(`    - ${aurora.colorText(key, '#868686')}`);
+                    });
+                }
+                break;
+            
+            case 'purge':
+                const purgeId = args.slice(1).join(' ');
+                if (!purgeId) {
+                    console.log("Usage: sysctl purge <module_id>");
+                    return;
+                }
+
+                // Determine if the ID is a path or a built-in module name
+                const isPath = purgeId.includes('/') || purgeId.includes('\\');
+                const absolutePurgeId = isPath ? path.join(currentWorkingDirectory, purgeId) : purgeId;
+
+                if (require.cache[absolutePurgeId]) {
+                    delete require.cache[absolutePurgeId];
+                    console.log(aurora.colorText(`Successfully purged '${purgeId}' from the runtime cache.`, '#00ff00'));
+                    console.log(aurora.colorText(`${bold}Warning:${reset} This does not stop already-running code from the module. A full restart is required to truly unload it.`, '#ffff00'));
+                } else {
+                    console.log(aurora.colorText(`Module with ID '${purgeId}' not found in the cache.`, '#F75456'));
+                }
+                break;
+
+            default:
+                console.log(`Unknown command: '${command}'. Use 'sysctl help' for a list of commands.`);
+                break;
+        }
+    }
+
+};

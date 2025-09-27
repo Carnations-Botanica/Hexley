@@ -156,11 +156,13 @@ export const Hexley = {
     startTime: Date.now(),
     startTimeArray: process.hrtime(),
     filesystemLoad: true, // not a user defined variable
-    filesystemLoaded: false,
+    filesystemLoaded: false, //
+    endpointLoad: true, // not a user defined variable
+    endpointLoaded: false, //
     registryLoad: true, // not a user defined variable
     registryLoaded: false, //
     loaderLoad: true, // not a user defined variable
-    loaderLoaded: false, // 
+    loaderLoaded: false, //
     versionLoad: true, // not a user defined variable
     versionLoaded: false, //
     auroraLoad: false,
@@ -486,6 +488,7 @@ if (isDiscordEnabled) {
     const discordReadyPromise = new Promise<void>(resolve => {
         Hexley.core.once('discordClient.ready', () => {
             log(`${Hexley.frameworks.aurora.colorText('[hexleyCore]', Hexley.frameworks.aurora.tintGray)} Core received signal from Discord framework.`);
+            Hexley.discordLoad = true;
             Hexley.discordLoaded = true;
             resolve();
         });

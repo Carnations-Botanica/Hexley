@@ -31,10 +31,9 @@ interface ModulePlist {
     };
     'Module Environment'?: { [key: string]: string };
     'Module Settings'?: {
-        enabled: boolean;
+        enabled?: boolean;
         moduleEntryPoint: string;
-        dependsDiscordFramework?: boolean;
-        canUseDiscord?: boolean;
+        depsOn?: string;
         hasPreviousInit?: boolean;
         debugMode?: boolean;
         [key: string]: any;
@@ -54,8 +53,9 @@ export const loaderFramework = {
     // Framework Log Color
     loaderColor: "#abffc6",
     loaderLight: "#0f8bff",
+    loaderQueue: [] as string[],
 
-    initializeLoader(Hexley: any) {
+    async initializeLoader(Hexley: any) {
         Hexley.log(`${Hexley.frameworks.aurora.colorText('[loaderFramework/initializeLoader]', this.loaderColor)} Initializing...`);
 
         const plistPath = path.join(Hexley.privateFrameworksRootPath, 'loaderFramework', 'info.plist');
@@ -66,6 +66,34 @@ export const loaderFramework = {
         Hexley.loaderLoaded = true;
         
         Hexley.log(`${Hexley.frameworks.aurora.colorText('[loaderFramework/initializeLoader]', this.loaderColor)} Initialized! The Loader Framework is now accepting requests.`);
+    },
+
+    async processLoaderQueue(Hexley: any) {
+        Hexley.log(`${Hexley.frameworks.aurora.colorText('[loaderFramework/processLoaderQueue]', this.loaderColor)} Processing loader queue...`);
+        let loadedInPass = true;
+        while (this.loaderQueue.length > 0 && loadedInPass) {
+            loadedInPass = false;
+            const queue = [...this.loaderQueue];
+            this.loaderQueue = [];
+
+            for (const plistPath of queue) {
+                const success = await this.loadRequest(Hexley, plistPath);
+                if (success) {
+                    loadedInPass = true;
+                } else {
+                    this.loaderQueue.push(plistPath);
+                }
+            }
+        }
+
+        if (this.loaderQueue.length > 0) {
+            Hexley.log(`${Hexley.frameworks.aurora.colorText('[loaderFramework/processLoaderQueue]', Hexley.frameworks.aurora.tintRed)} Could not load the following modules due to missing dependencies:`);
+            for (const plistPath of this.loaderQueue) {
+                const parentDir = path.dirname(plistPath);
+                const requestName = path.basename(parentDir);
+                Hexley.log(`${Hexley.frameworks.aurora.colorText('[loaderFramework/processLoaderQueue]', Hexley.frameworks.aurora.tintRed)} - ${requestName}`);
+            }
+        }
     },
 
     async loadRequest(Hexley: any, plistPath: string) {
@@ -91,6 +119,7 @@ export const loaderFramework = {
         } else {
             Hexley.log(`${Hexley.frameworks.aurora.colorText('[loaderFramework/loadRequest]', Hexley.frameworks.aurora.tintRedBright)} Failed to fulfill load request for "${requestName}".`);
         }
+        return success;
 
     },
 
@@ -188,17 +217,30 @@ export const loaderFramework = {
                 Hexley.log(`${Hexley.frameworks.aurora.colorText('[loaderFramework/_handleModuleLoad]', this.loaderColor)} Module "${entry.Name}" is disabled. Skipping initialization.`);
                 return true; // Return true to not indicate a failure
             }
-            
-            const canUseDiscord = entry.Settings?.canUseDiscord;
-            const dependsDiscordFramework = entry.Settings?.dependsDiscordFramework;
 
-            // Check if Discord is a critical dependency first. If it fails, return false immediately.
-            if (dependsDiscordFramework && !Hexley.discordLoaded) {
-                Hexley.log(`${Hexley.frameworks.aurora.colorText('[loaderFramework/_handleModuleLoad]', Hexley.frameworks.aurora.tintRed)} Fatal: Module "${entry.Name}" requires the Discord framework, which is not loaded. Skipping initialization.`);
-                return false;
-            } else if (canUseDiscord && !Hexley.discordLoaded) {
-                Hexley.log(`${Hexley.frameworks.aurora.colorText('[loaderFramework/_handleModuleLoad]', this.loaderColor)} Module "${entry.Name}" wants to use Discord, but the Discord Framework is not loaded. Functionality may be limited.`);
+            // Check for dependencies
+            const depsOn = entry.Settings?.depsOn;
+            if (depsOn) {
+                const dependencies = depsOn.split(',').map((dep: string) => dep.trim());
+                for (const dep of dependencies) {
+                    // Check if a required framework is disabled in the global config
+                    const frameworkLoadFlag = `${dep.replace('Framework', '')}Load`; // e.g., 'discordLoad'
+                    if (Hexley[frameworkLoadFlag] === false) {
+                        Hexley.log(`${Hexley.frameworks.aurora.colorText('[loaderFramework/_handleModuleLoad]', Hexley.frameworks.aurora.tintYellow)} Module "${entry.Name}" was not loaded because its dependency "${dep}" is disabled.`);
+                        return false; // Abort the load entirely
+                    }
+
+                    if (!Hexley.versions[dep]) {
+                        Hexley.log(`${Hexley.frameworks.aurora.colorText('[loaderFramework/_handleModuleLoad]', this.loaderColor)} Module "${entry.Name}" has unmet dependency: "${dep}". Adding to loader queue.`);
+                        if (!this.loaderQueue.includes(plistPath)) {
+                            this.loaderQueue.push(plistPath);
+                        }
+                        return false;
+                    }
+                }
             }
+            
+            const usesDiscord = (entry.Settings?.depsOn ?? '').includes('discordFramework');
 
             // If dependency checks pass, add to registry and versions
             if (Hexley.registryLoaded) {
@@ -264,7 +306,7 @@ export const loaderFramework = {
             // Slash Command Registration Logic
             const canInit = entry.Abilities?.canInitSlashCommands;
             const hasInitted = entry.Settings?.hasPreviousInit;
-            if (Hexley.discordLoaded && canUseDiscord && canInit && !hasInitted && entry.Commands) {
+            if (Hexley.discordLoaded && usesDiscord && canInit && !hasInitted && entry.Commands) {
                 Hexley.log(`${Hexley.frameworks.aurora.colorText('[loaderFramework/_handleModuleLoad]', this.loaderColor)} Module "${entry.Name}" requires initial slash command registration.`);
                 const moduleDebugMode = entry.Settings?.debugMode ?? false;
                 for (const commandName in entry.Commands) {
@@ -290,7 +332,7 @@ export const loaderFramework = {
                     fs.writeFileSync(plistPath, updatedPlistContent);
                     Hexley.log(`${Hexley.frameworks.aurora.colorText('[loaderFramework/_handleModuleLoad]', this.loaderColor)} Updated hasPreviousInit flag in Info.plist`);
                 }
-            } else if (Hexley.discordLoaded && canUseDiscord && canInit && hasInitted) {
+            } else if (Hexley.discordLoaded && usesDiscord && canInit && hasInitted) {
                 Hexley.log(`${Hexley.frameworks.aurora.colorText('[loaderFramework/_handleModuleLoad]', this.loaderColor)} Module "${entry.Name}" has already initialized its slash commands. Skipping.`);
             }
 
@@ -328,4 +370,5 @@ export const loaderFramework = {
             return null;
         }
     },
+
 };

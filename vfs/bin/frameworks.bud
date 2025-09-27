@@ -1,0 +1,177 @@
+import fs from 'fs';
+import path from 'path';
+import plist from 'plist';
+
+// ANSI escape codes for text styling
+const bold = '\x1b[1m';
+const reset = '\x1b[0m';
+
+/**
+ * The frameworks command source code.
+ */
+export const frameworks = {
+    description: 'Manages and lists frameworks in the registry.',
+    extendedDescription: 'Framework Control Program (FCP). Use `frameworks help` for a list of commands.',
+
+    /**
+     * Displays the help information for the frameworks command.
+     */
+    _displayHelp(Hexley: any) {
+        console.log(`${bold}Framework Control Program (FCP)${reset}`);
+        console.log("This command provides the ability to interface with the framework registry.");
+        console.log("Version 1.0.0\n");
+        console.log("Use the following commands to execute actions:");
+        console.log(`list           | Provides a list of all frameworks and their status.`);
+        console.log(`info <framework> | Query a framework for its info.plist for more information.`);
+    },
+    
+    /**
+     * Recursively prints a dictionary with colored keys.
+     */
+    _printDictionary(aurora: any, dict: any, indent = '  ') {
+        for (const key in dict) {
+            const value = dict[key];
+            if (typeof value === 'object' && value !== null) {
+                console.log(`${indent}${aurora.colorText(key, '#868686')}:`);
+                this._printDictionary(aurora, value, indent + '  ');
+            } else {
+                console.log(`${indent}${aurora.colorText(key, '#868686')}: ${value}`);
+            }
+        }
+    },
+
+    /**
+     * Main entry point for the frameworks command.
+     */
+    main(Hexley: any, args: string[]) {
+        const command = args[0] || 'list';
+        const aurora = Hexley.frameworks.aurora;
+
+        switch (command) {
+            case 'help':
+                this._displayHelp(Hexley);
+                break;
+
+            case 'list':
+                const loadedFrameworkNames = Object.keys(Hexley.versions);
+                const privateFrameworkDirs = fs.readdirSync(Hexley.privateFrameworksRootPath).filter(f => 
+                    fs.statSync(path.join(Hexley.privateFrameworksRootPath, f)).isDirectory());
+                const publicFrameworkDirs = fs.readdirSync(Hexley.publicFrameworksRootPath).filter(f => 
+                    fs.statSync(path.join(Hexley.publicFrameworksRootPath, f)).isDirectory());
+                
+                const allFrameworkDirs = [
+                    ...privateFrameworkDirs.map(dir => ({ dir, path: Hexley.privateFrameworksRootPath, type: 'Private' })),
+                    ...publicFrameworkDirs.map(dir => ({ dir, path: Hexley.publicFrameworksRootPath, type: 'Public' }))
+                ];
+
+                if (allFrameworkDirs.length === 0) {
+                    console.log("No frameworks found.");
+                    return;
+                }
+
+                console.log(`Listing all ${allFrameworkDirs.length} framework/s on the filesystem:\n`);
+
+                const frameworkDetails = allFrameworkDirs.map(({ dir, path: basePath, type }) => {
+                    const plistPath = path.join(basePath, dir, 'info.plist');
+                    try {
+                        const plistContent = fs.readFileSync(plistPath, 'utf8');
+                        const parsed = plist.parse(plistContent) as any;
+                        const frameworkName = parsed['Framework Name'] || dir;
+                        return {
+                            Name: frameworkName,
+                            Version: parsed['Framework Version'] || 'N/A',
+                            Description: parsed['Framework Description'] || 'No description.',
+                            isLoaded: loadedFrameworkNames.includes(frameworkName),
+                            Type: type
+                        };
+                    } catch (e) {
+                        return {
+                            Name: dir,
+                            Version: 'N/A',
+                            Description: 'Could not read info.plist.',
+                            isLoaded: loadedFrameworkNames.includes(dir),
+                            Type: type
+                        };
+                    }
+                }).sort((a, b) => a.Name.localeCompare(b.Name));
+
+                frameworkDetails.forEach((fwInfo: any) => {
+                    const { Name, Version, Description, isLoaded, Type } = fwInfo;
+                    const coloredName = aurora.colorText(`${bold}${Name}${reset}`, '#F75456');
+                    const coloredVersion = aurora.colorText(`- ${Version} (${Type})`, '#868686');
+                    console.log(`${coloredName} ${coloredVersion}`);
+                    const statusText = isLoaded ? '(Loaded)' : '(Unloaded)';
+                    const statusColor = isLoaded ? '#00ff00' : '#808080';
+                    const coloredStatus = aurora.colorText(statusText, statusColor);
+                    console.log(`  - ${Description} ${coloredStatus}\n`);
+                });
+                break;
+            
+            case 'info':
+                const fwName = args[1];
+                if (!fwName) {
+                    console.log("Usage: frameworks info <framework_name>");
+                    return;
+                }
+
+                let fwInfo = Hexley.frameworks.registry.getEntryByName(fwName);
+
+                if (!fwInfo) {
+                    const privatePath = path.join(Hexley.privateFrameworksRootPath, fwName, 'info.plist');
+                    const publicPath = path.join(Hexley.publicFrameworksRootPath, fwName, 'info.plist');
+                    let plistPath = '';
+
+                    if (fs.existsSync(privatePath)) {
+                        plistPath = privatePath;
+                    } else if (fs.existsSync(publicPath)) {
+                        plistPath = publicPath;
+                    }
+
+                    if (plistPath) {
+                        try {
+                            const plistContent = fs.readFileSync(plistPath, 'utf8');
+                            const parsed = plist.parse(plistContent) as any;
+                            fwInfo = {
+                                Name: parsed['Framework Name'],
+                                Version: parsed['Framework Version'],
+                                Description: parsed['Framework Description'],
+                                Identifier: parsed['Framework Identifier'],
+                                ...parsed
+                            };
+                        } catch (e) {
+                            // Fall through to the error below
+                        }
+                    }
+                }
+
+                if (!fwInfo) {
+                    console.log(`Framework '${fwName}' not found.`);
+                    return;
+                }
+                
+                const title = `${fwInfo.Name} (v${fwInfo.Version})`;
+                console.log(aurora.colorText(`${bold}${title}${reset}`, '#F75456'));
+                console.log(`Description: ${aurora.colorText(fwInfo.Description, '#868686')}`);
+                console.log(`Identifier: ${aurora.colorText(fwInfo.Identifier, '#868686')}`);
+                console.log("---");
+
+                for (const key in fwInfo) {
+                    if (!['Name', 'Version', 'Description', 'Identifier', 'Type'].includes(key)) {
+                        const value = fwInfo[key];
+                        console.log(aurora.colorText(`${bold}${key}:${reset}`, '#F75456'));
+                        if (typeof value === 'object' && value !== null) {
+                            this._printDictionary(aurora, value);
+                        } else {
+                            console.log(`  ${aurora.colorText(value, '#868686')}`);
+                        }
+                    }
+                }
+                break;
+
+            default:
+                console.log(`Unknown command: '${command}'. Use 'frameworks help' for a list of commands.`);
+                break;
+        }
+    }
+    
+};

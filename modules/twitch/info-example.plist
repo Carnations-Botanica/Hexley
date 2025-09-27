@@ -43,10 +43,8 @@
 		<false/>
 		<key>moduleEntryPoint</key>
 		<string>twitchInit</string>
-		<key>dependsDiscordFramework</key>
-		<true/>
-		<key>canUseDiscord</key>
-		<true/>
+		<key>depsOn</key>
+		<string>discordFramework, endpointFramework</string>
 		<key>hasPreviousInit</key>
 		<false/>
 		<key>debugMode</key>
