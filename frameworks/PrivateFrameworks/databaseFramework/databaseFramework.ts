@@ -1,12 +1,13 @@
-import { Sequelize, DataTypes, Model } from "sequelize";
-import path from "path";
-import fs from "fs";
-import { parse } from "csv-parse/sync";
+import { Sequelize, DataTypes, Model } from 'sequelize';
+import path from 'path';
+import fs from 'fs';
+import { parse } from 'csv-parse';
 
 /**
  * The globally accessible framework for managing Hexley's database connection via Sequelize.
  */
 export const databaseFramework = {
+
   // Framework Logging Color
   frameworkColor: "#5600db",
 
@@ -18,38 +19,25 @@ export const databaseFramework = {
    * @param {any} Hexley - The main Hexley global object.
    */
   async initializeDatabaseConnection(Hexley: any) {
-    Hexley.log(
-      `${Hexley.frameworks.aurora.colorText(`[databaseFramework/initializeDatabaseConnection]`, this.frameworkColor)} Initializing in ${Hexley.databaseMode} mode...`,
-    );
+    Hexley.log(`${Hexley.frameworks.aurora.colorText(`[databaseFramework/initializeDatabaseConnection]`, this.frameworkColor)} Initializing in ${Hexley.databaseMode} mode...`);
 
     // Dispatch to the correct initializer based on the mode
-    if (Hexley.databaseMode === "Sequelizer") {
+    if (Hexley.databaseMode === 'Sequelizer') {
       await this._initializeSequelizer(Hexley);
     } else {
       await this._initializeLocal(Hexley);
     }
 
-    Hexley.core.once("registryFramework.ready", () => {
-      const plistPath = path.join(
-        Hexley.privateFrameworksRootPath,
-        "databaseFramework",
-        "info.plist",
-      );
+    Hexley.core.once('registryFramework.ready', () => {
+      const plistPath = path.join(Hexley.privateFrameworksRootPath, 'databaseFramework', 'info.plist');
       Hexley.frameworks.registry.addEntryByPlist(Hexley, plistPath);
     });
 
-    Hexley.core.once("versionFramework.ready", () => {
-      Hexley.frameworks.version.addVersionEntry(
-        Hexley,
-        "databaseFramework",
-        "Framework",
-        "1.0.0",
-      );
+    Hexley.core.once('versionFramework.ready', () => {
+      Hexley.frameworks.version.addVersionEntry(Hexley, 'databaseFramework', 'Framework', '1.0.0');
     });
 
-    Hexley.log(
-      `${Hexley.frameworks.aurora.colorText("[databaseFramework/initializeDatabaseConnection]", this.frameworkColor)} Initialized! Database Framework is now loaded into memory.`,
-    );
+    Hexley.log(`${Hexley.frameworks.aurora.colorText('[databaseFramework/initializeDatabaseConnection]', this.frameworkColor)} Initialized! Database Framework is now loaded into memory.`);
   },
 
   /**
@@ -57,26 +45,14 @@ export const databaseFramework = {
    * @param {any} Hexley - The main Hexley global object.
    */
   async _initializeSequelizer(Hexley: any) {
-    const { DB_USER, DB_NAME, DB_PASSWORD, DB_HOST, DB_PORT } = process.env;
+    const { DB_USER, DB_NAME, DB_PASS, DB_HOST, DB_PORT } = process.env;
 
-    if (!DB_USER || !DB_NAME || !DB_PASSWORD || !DB_HOST || !DB_PORT) {
-      console.error(
-        Hexley.frameworks.aurora.colorText(
-          "[databaseFramework/_initializeSequelizer] Fatal: One or more database environment variables are missing.",
-          Hexley.frameworks.aurora.tintRedBright,
-        ),
-      );
+    if (!DB_USER || !DB_NAME || !DB_PASS || !DB_HOST || !DB_PORT) {
+      console.error(Hexley.frameworks.aurora.colorText('[databaseFramework/_initializeSequelizer] Fatal: One or more database environment variables are missing.', Hexley.frameworks.aurora.tintRedBright));
       process.exit(1);
     }
 
-    await this._connectToDatabase(
-      Hexley,
-      DB_NAME,
-      DB_USER,
-      DB_PASSWORD,
-      DB_HOST,
-      parseInt(DB_PORT, 10),
-    );
+    await this._connectToDatabase(Hexley, DB_NAME, DB_USER, DB_PASS, DB_HOST, parseInt(DB_PORT, 10));
 
     Hexley.databaseLoaded = true;
   },
@@ -89,36 +65,25 @@ export const databaseFramework = {
     try {
       // Check if the db.json file already exists.
       if (fs.existsSync(Hexley.databaseLocalDir)) {
-        const fileContent = fs.readFileSync(Hexley.databaseLocalDir, "utf8");
+        const fileContent = fs.readFileSync(Hexley.databaseLocalDir, 'utf8');
 
         // If the file is empty or just whitespace, start with an empty object.
         // Otherwise, parse its JSON content.
         this._localDB = fileContent.trim() ? JSON.parse(fileContent) : {};
 
-        Hexley.log(
-          `${Hexley.frameworks.aurora.colorText("[databaseFramework/_initializeLocal]", this.frameworkColor)} Loaded local database from ${Hexley.databaseLocalDir}`,
-        );
+        Hexley.log(`${Hexley.frameworks.aurora.colorText('[databaseFramework/_initializeLocal]', this.frameworkColor)} Loaded local database from ${Hexley.databaseLocalDir}`);
       } else {
         // If the file doesn't exist, create it with an empty object.
         this._localDB = {};
-        fs.writeFileSync(
-          Hexley.databaseLocalDir,
-          JSON.stringify(this._localDB, null, 2),
-        );
+        fs.writeFileSync(Hexley.databaseLocalDir, JSON.stringify(this._localDB, null, 2));
 
-        Hexley.log(
-          `${Hexley.frameworks.aurora.colorText("[databaseFramework/_initializeLocal]", this.frameworkColor)} Created new local database at ${Hexley.databaseLocalDir}`,
-        );
+        Hexley.log(`${Hexley.frameworks.aurora.colorText('[databaseFramework/_initializeLocal]', this.frameworkColor)} Created new local database at ${Hexley.databaseLocalDir}`);
       }
 
       Hexley.databaseLoaded = true;
+
     } catch (error: any) {
-      console.error(
-        Hexley.frameworks.aurora.colorText(
-          `[databaseFramework/_initializeLocal] Fatal: Could not read or create local database file: ${error.message}`,
-          Hexley.frameworks.aurora.tintRedBright,
-        ),
-      );
+      console.error(Hexley.frameworks.aurora.colorText(`[databaseFramework/_initializeLocal] Fatal: Could not read or create local database file: ${error.message}`, Hexley.frameworks.aurora.tintRedBright));
       process.exit(1);
     }
   },
@@ -128,17 +93,8 @@ export const databaseFramework = {
    * Stores the connection instance in the global Hexley object.
    * @param {any} Hexley - The main Hexley global object.
    */
-  async _connectToDatabase(
-    Hexley: any,
-    dbName: string,
-    dbUser: string,
-    dbPassword: string,
-    dbHost: string,
-    dbPort: number,
-  ) {
-    Hexley.log(
-      `${Hexley.frameworks.aurora.colorText("[databaseFramework/_connectToDatabase]", this.frameworkColor)} Initializing connection to database: ${dbName}...`,
-    );
+  async _connectToDatabase(Hexley: any, dbName: string, dbUser: string, dbPassword: string, dbHost: string, dbPort: number) {
+    Hexley.log(`${Hexley.frameworks.aurora.colorText('[databaseFramework/_connectToDatabase]', this.frameworkColor)} Initializing connection to database: ${dbName}...`);
 
     let sequelize: Sequelize;
 
@@ -146,56 +102,32 @@ export const databaseFramework = {
       sequelize = new Sequelize(dbName, dbUser, dbPassword, {
         host: dbHost,
         port: dbPort,
-        dialect: "mysql",
+        dialect: 'mysql',
         logging: false,
       });
       await sequelize.authenticate();
     } catch (error: any) {
-      if (error.original && error.original.code === "ER_BAD_DB_ERROR") {
-        Hexley.log(
-          `${Hexley.frameworks.aurora.colorText("[databaseFramework/_connectToDatabase]", this.frameworkColor)} Database "${dbName}" not found. Attempting to create...`,
-        );
-        const sequelizeWithoutDb = new Sequelize("", dbUser, dbPassword, {
-          host: dbHost,
-          port: dbPort,
-          dialect: "mysql",
-          logging: false,
-        });
-        await sequelizeWithoutDb.query(
-          `CREATE DATABASE IF NOT EXISTS \`${dbName}\`;`,
-        );
-        sequelize = new Sequelize(dbName, dbUser, dbPassword, {
-          host: dbHost,
-          port: dbPort,
-          dialect: "mysql",
-          logging: false,
-        });
+      if (error.original && error.original.code === 'ER_BAD_DB_ERROR') {
+        Hexley.log(`${Hexley.frameworks.aurora.colorText('[databaseFramework/_connectToDatabase]', this.frameworkColor)} Database "${dbName}" not found. Attempting to create...`);
+        const sequelizeWithoutDb = new Sequelize('', dbUser, dbPassword, { host: dbHost, port: dbPort, dialect: 'mysql', logging: false });
+        await sequelizeWithoutDb.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\`;`);
+        sequelize = new Sequelize(dbName, dbUser, dbPassword, { host: dbHost, port: dbPort, dialect: 'mysql', logging: false });
         await sequelize.authenticate();
       } else {
-        console.error(
-          Hexley.frameworks.aurora.colorText(
-            `[databaseFramework/_connectToDatabase] Fatal: Unable to connect to database "${dbName}": ${error.message}`,
-            Hexley.frameworks.aurora.tintRedBright,
-          ),
-        );
+        console.error(Hexley.frameworks.aurora.colorText(`[databaseFramework/_connectToDatabase] Fatal: Unable to connect to database "${dbName}": ${error.message}`, Hexley.frameworks.aurora.tintRedBright));
         process.exit(1);
       }
     }
 
-    Hexley.log(
-      `${Hexley.frameworks.aurora.colorText("[databaseFramework/_connectToDatabase]", this.frameworkColor)} Connection to MariaDB database "${dbName}" has been established successfully.`,
-    );
+    Hexley.log(`${Hexley.frameworks.aurora.colorText('[databaseFramework/_connectToDatabase]', this.frameworkColor)} Connection to MariaDB database "${dbName}" has been established successfully.`);
 
     if (!Hexley.database) Hexley.database = {};
     Hexley.database[dbName] = sequelize;
   },
 
   // Abstraction Layer for operands
-  async getDatabaseTables(
-    Hexley: any,
-    databaseName: string,
-  ): Promise<string[]> {
-    if (Hexley.databaseMode === "Local") {
+  async getDatabaseTables(Hexley: any, databaseName: string): Promise<string[]> {
+    if (Hexley.databaseMode === 'Local') {
       return Object.keys(this._localDB);
     }
 
@@ -204,21 +136,15 @@ export const databaseFramework = {
     if (!sequelizeInstance) return [];
 
     try {
-      const tables = await sequelizeInstance
-        .getQueryInterface()
-        .showAllTables();
+      const tables = await sequelizeInstance.getQueryInterface().showAllTables();
       return tables;
     } catch (error) {
       return [];
     }
   },
 
-  async initTableDefinition(
-    Hexley: any,
-    databaseName: string,
-    tableModel: any,
-  ): Promise<any> {
-    if (Hexley.databaseMode === "Local") {
+  async initTableDefinition(Hexley: any, databaseName: string, tableModel: any): Promise<any> {
+    if (Hexley.databaseMode === 'Local') {
       return this._handleLocalInitTable(Hexley, tableModel);
     }
     // --- Sequelizer Mode ---
@@ -231,12 +157,8 @@ export const databaseFramework = {
     return model;
   },
 
-  async getTableDefinitionEntries(
-    Hexley: any,
-    databaseName: string,
-    tableModel: { options: any },
-  ): Promise<any[]> {
-    if (Hexley.databaseMode === "Local") {
+  async getTableDefinitionEntries(Hexley: any, databaseName: string, tableModel: { options: any }): Promise<any[]> {
+    if (Hexley.databaseMode === 'Local') {
       return this._handleLocalGetEntries(Hexley, tableModel);
     }
     // --- Sequelizer Mode ---
@@ -252,13 +174,8 @@ export const databaseFramework = {
     return entries.map((entry: any) => entry.toJSON());
   },
 
-  async getTableDefinitionEntry(
-    Hexley: any,
-    databaseName: string,
-    tableModel: { options: any },
-    query: any,
-  ): Promise<any> {
-    if (Hexley.databaseMode === "Local") {
+  async getTableDefinitionEntry(Hexley: any, databaseName: string, tableModel: { options: any }, query: any): Promise<any> {
+    if (Hexley.databaseMode === 'Local') {
       return this._handleLocalGetEntry(Hexley, tableModel, query);
     }
     // --- Sequelizer Mode ---
@@ -269,17 +186,9 @@ export const databaseFramework = {
     return await model.findOne(query);
   },
 
-  async addTableDefinitionEntry(
-    Hexley: any,
-    databaseName: string,
-    tableModel: { options: any },
-    entryObject: any,
-    query: any,
-  ): Promise<any> {
-    Hexley.log(
-      `${Hexley.frameworks.aurora.colorText(`[databaseFramework/addTableDefinitionEntry]`, this.frameworkColor)} Received request for table: ${tableModel.options.tableName}`,
-    );
-    if (Hexley.databaseMode === "Local") {
+  async addTableDefinitionEntry(Hexley: any, databaseName: string, tableModel: { options: any }, entryObject: any, query: any): Promise<any> {
+    Hexley.log(`${Hexley.frameworks.aurora.colorText(`[databaseFramework/addTableDefinitionEntry]`, this.frameworkColor)} Received request for table: ${tableModel.options.tableName}`);
+    if (Hexley.databaseMode === 'Local') {
       return this._handleLocalAddEntry(Hexley, tableModel, entryObject, query);
     }
     // --- Sequelizer Mode ---
@@ -289,35 +198,18 @@ export const databaseFramework = {
     if (!model) return null;
     const existingEntry = await model.findOne({ where: query });
     if (existingEntry) {
-      Hexley.log(
-        `${Hexley.frameworks.aurora.colorText(`[databaseFramework/addTableDefinitionEntry]`, this.frameworkColor)} Entry already exists in ${tableModel.options.tableName}. Will not create.`,
-      );
+      Hexley.log(`${Hexley.frameworks.aurora.colorText(`[databaseFramework/addTableDefinitionEntry]`, this.frameworkColor)} Entry already exists in ${tableModel.options.tableName}. Will not create.`);
       return null;
     }
 
-    Hexley.log(
-      `${Hexley.frameworks.aurora.colorText(`[databaseFramework/addTableDefinitionEntry]`, this.frameworkColor)} Adding new entry to ${tableModel.options.tableName}...`,
-    );
+    Hexley.log(`${Hexley.frameworks.aurora.colorText(`[databaseFramework/addTableDefinitionEntry]`, this.frameworkColor)} Adding new entry to ${tableModel.options.tableName}...`);
     return await model.create(entryObject);
   },
 
-  async updateTableDefinitionEntry(
-    Hexley: any,
-    databaseName: string,
-    tableModel: { options: any },
-    entryObject: any,
-    query: any,
-  ): Promise<any> {
-    Hexley.log(
-      `${Hexley.frameworks.aurora.colorText(`[databaseFramework/updateTableDefinitionEntry]`, this.frameworkColor)} Received request for table: ${tableModel.options.tableName}`,
-    );
-    if (Hexley.databaseMode === "Local") {
-      return this._handleLocalUpdateEntry(
-        Hexley,
-        tableModel,
-        entryObject,
-        query,
-      );
+  async updateTableDefinitionEntry(Hexley: any, databaseName: string, tableModel: { options: any }, entryObject: any, query: any): Promise<any> {
+    Hexley.log(`${Hexley.frameworks.aurora.colorText(`[databaseFramework/updateTableDefinitionEntry]`, this.frameworkColor)} Received request for table: ${tableModel.options.tableName}`);
+    if (Hexley.databaseMode === 'Local') {
+      return this._handleLocalUpdateEntry(Hexley, tableModel, entryObject, query);
     }
     // --- Sequelizer Mode ---
     const sequelizeInstance = Hexley.database[databaseName];
@@ -325,52 +217,27 @@ export const databaseFramework = {
     const model = sequelizeInstance.models[tableModel.options.tableName];
     if (!model) return null;
 
-    Hexley.log(
-      `${Hexley.frameworks.aurora.colorText(`[databaseFramework/updateTableDefinitionEntry]`, this.frameworkColor)} Updating entry in ${tableModel.options.tableName}...`,
-    );
+    Hexley.log(`${Hexley.frameworks.aurora.colorText(`[databaseFramework/updateTableDefinitionEntry]`, this.frameworkColor)} Updating entry in ${tableModel.options.tableName}...`);
     return await model.update(entryObject, { where: query });
   },
 
-  async upsertTableDefinitionEntry(
-    Hexley: any,
-    databaseName: string,
-    tableModel: { options: any },
-    entryObject: any,
-  ): Promise<any> {
-    Hexley.log(
-      `${Hexley.frameworks.aurora.colorText(`[databaseFramework/upsertTableDefinitionEntry]`, this.frameworkColor)} Received request for table: ${tableModel.options.tableName}`,
-    );
-    if (Hexley.databaseMode === "Local") {
+  async upsertTableDefinitionEntry(Hexley: any, databaseName: string, tableModel: { options: any }, entryObject: any): Promise<any> {
+    Hexley.log(`${Hexley.frameworks.aurora.colorText(`[databaseFramework/upsertTableDefinitionEntry]`, this.frameworkColor)} Received request for table: ${tableModel.options.tableName}`);
+    if (Hexley.databaseMode === 'Local') {
       // Local mode doesn't have a simple upsert, so we'll do it manually.
       const primaryKey = Object.keys(entryObject)[0];
       if (!primaryKey) {
-        Hexley.log(
-          `${Hexley.frameworks.aurora.colorText(`[databaseFramework/upsertTableDefinitionEntry]`, this.frameworkColor)} Error: Cannot upsert empty object.`,
-        );
+        Hexley.log(`${Hexley.frameworks.aurora.colorText(`[databaseFramework/upsertTableDefinitionEntry]`, this.frameworkColor)} Error: Cannot upsert empty object.`);
         return null;
       }
 
       const query = { where: { [primaryKey]: entryObject[primaryKey] } };
-      const existing = await this._handleLocalGetEntry(
-        Hexley,
-        tableModel,
-        query,
-      );
+      const existing = await this._handleLocalGetEntry(Hexley, tableModel, query);
 
       if (existing) {
-        return this._handleLocalUpdateEntry(
-          Hexley,
-          tableModel,
-          entryObject,
-          query,
-        );
+        return this._handleLocalUpdateEntry(Hexley, tableModel, entryObject, query);
       } else {
-        return this._handleLocalAddEntry(
-          Hexley,
-          tableModel,
-          entryObject,
-          query,
-        );
+        return this._handleLocalAddEntry(Hexley, tableModel, entryObject, query);
       }
     }
     // --- Sequelizer Mode ---
@@ -379,19 +246,12 @@ export const databaseFramework = {
     const model = sequelizeInstance.models[tableModel.options.tableName];
     if (!model) return null;
 
-    Hexley.log(
-      `${Hexley.frameworks.aurora.colorText(`[databaseFramework/upsertTableDefinitionEntry]`, this.frameworkColor)} Upserting entry in ${tableModel.options.tableName}...`,
-    );
+    Hexley.log(`${Hexley.frameworks.aurora.colorText(`[databaseFramework/upsertTableDefinitionEntry]`, this.frameworkColor)} Upserting entry in ${tableModel.options.tableName}...`);
     return await model.upsert(entryObject);
   },
 
-  async deleteTableDefinitionEntry(
-    Hexley: any,
-    databaseName: string,
-    tableModel: { options: any },
-    query: any,
-  ): Promise<boolean> {
-    if (Hexley.databaseMode === "Local") {
+  async deleteTableDefinitionEntry(Hexley: any, databaseName: string, tableModel: { options: any }, query: any): Promise<boolean> {
+    if (Hexley.databaseMode === 'Local') {
       return this._handleLocalDeleteEntry(Hexley, tableModel, query);
     }
     // --- Sequelizer Mode ---
@@ -403,12 +263,8 @@ export const databaseFramework = {
     return result > 0;
   },
 
-  async resetTableDefinition(
-    Hexley: any,
-    databaseName: string,
-    tableModel: { options: any },
-  ): Promise<void> {
-    if (Hexley.databaseMode === "Local") {
+  async resetTableDefinition(Hexley: any, databaseName: string, tableModel: { options: any }): Promise<void> {
+    if (Hexley.databaseMode === 'Local') {
       return this._handleLocalResetTable(Hexley, tableModel);
     }
     // --- Sequelizer Mode ---
@@ -433,62 +289,38 @@ export const databaseFramework = {
     return this._localDB[tableName] || [];
   },
 
-  async _handleLocalGetEntry(
-    Hexley: any,
-    tableModel: any,
-    query: any,
-  ): Promise<any> {
+  async _handleLocalGetEntry(Hexley: any, tableModel: any, query: any): Promise<any> {
     const tableName = tableModel.options.tableName;
     const table = this._localDB[tableName] || [];
     if (!query || !query.where) return null;
 
-    return (
-      table.find((entry) =>
-        Object.keys(query.where).every(
-          (key) => entry[key] === query.where[key],
-        ),
-      ) || null
-    );
+    return table.find(entry =>
+      Object.keys(query.where).every(key => entry[key] === query.where[key])
+    ) || null;
   },
 
-  async _handleLocalAddEntry(
-    Hexley: any,
-    tableModel: any,
-    entryObject: any,
-    query: any,
-  ): Promise<any> {
+  async _handleLocalAddEntry(Hexley: any, tableModel: any, entryObject: any, query: any): Promise<any> {
     const table = await this._handleLocalInitTable(Hexley, tableModel);
-    const existingEntry = await this._handleLocalGetEntry(Hexley, tableModel, {
-      where: query,
-    });
+    const existingEntry = await this._handleLocalGetEntry(Hexley, tableModel, { where: query });
     if (existingEntry) return null;
 
-    Hexley.log(
-      `${Hexley.frameworks.aurora.colorText(`[databaseFramework/_handleLocalAddEntry]`, this.frameworkColor)} Adding new entry to ${tableModel.options.tableName}...`,
-    );
+    Hexley.log(`${Hexley.frameworks.aurora.colorText(`[databaseFramework/_handleLocalAddEntry]`, this.frameworkColor)} Adding new entry to ${tableModel.options.tableName}...`);
     table.push(entryObject);
     this._saveLocalDB(Hexley);
     return entryObject;
   },
 
-  async _handleLocalUpdateEntry(
-    Hexley: any,
-    tableModel: any,
-    entryObject: any,
-    query: any,
-  ): Promise<any> {
+  async _handleLocalUpdateEntry(Hexley: any, tableModel: any, entryObject: any, query: any): Promise<any> {
     const tableName = tableModel.options.tableName;
     const table = this._localDB[tableName] || [];
     if (!query || !query.where) return null;
 
-    const entryToUpdate = table.find((entry) =>
-      Object.keys(query.where).every((key) => entry[key] === query.where[key]),
+    const entryToUpdate = table.find(entry =>
+      Object.keys(query.where).every(key => entry[key] === query.where[key])
     );
 
     if (entryToUpdate) {
-      Hexley.log(
-        `${Hexley.frameworks.aurora.colorText(`[databaseFramework/_handleLocalUpdateEntry]`, this.frameworkColor)} Updating entry in ${tableName}...`,
-      );
+      Hexley.log(`${Hexley.frameworks.aurora.colorText(`[databaseFramework/_handleLocalUpdateEntry]`, this.frameworkColor)} Updating entry in ${tableName}...`);
       Object.assign(entryToUpdate, entryObject);
       this._saveLocalDB(Hexley);
       return entryToUpdate;
@@ -496,17 +328,13 @@ export const databaseFramework = {
     return null;
   },
 
-  async _handleLocalDeleteEntry(
-    Hexley: any,
-    tableModel: any,
-    query: any,
-  ): Promise<boolean> {
+  async _handleLocalDeleteEntry(Hexley: any, tableModel: any, query: any): Promise<boolean> {
     const tableName = tableModel.options.tableName;
     const table = this._localDB[tableName];
     if (!table || !query) return false;
 
-    const indexToDelete = table.findIndex((entry) =>
-      Object.keys(query).every((key) => entry[key] === query[key]),
+    const indexToDelete = table.findIndex(entry =>
+      Object.keys(query).every(key => entry[key] === query[key])
     );
 
     if (indexToDelete > -1) {
@@ -533,17 +361,13 @@ export const databaseFramework = {
    */
   _parseDefinition(Hexley: any, tableModel: any) {
     if (!tableModel || !tableModel.definition || !tableModel.options) {
-      Hexley.log(
-        `${Hexley.frameworks.aurora.colorText("[databaseFramework/_parseDefinition]", this.frameworkColor)} Error: Invalid table model. Missing 'definition' or 'options'.`,
-      );
+      Hexley.log(`${Hexley.frameworks.aurora.colorText('[databaseFramework/_parseDefinition]', this.frameworkColor)} Error: Invalid table model. Missing 'definition' or 'options'.`);
       return null;
     }
 
     const tableName = tableModel.options.tableName;
     if (!tableName) {
-      Hexley.log(
-        `${Hexley.frameworks.aurora.colorText("[databaseFramework/_parseDefinition]", this.frameworkColor)} Error: Table name not specified in model options.`,
-      );
+      Hexley.log(`${Hexley.frameworks.aurora.colorText('[databaseFramework/_parseDefinition]', this.frameworkColor)} Error: Table name not specified in model options.`);
       return null;
     }
 
@@ -552,20 +376,15 @@ export const databaseFramework = {
     return {
       tableName: tableName,
       definition: tableModel.definition,
-      options: tableModel.options,
+      options: tableModel.options
     };
   },
 
   _saveLocalDB(Hexley: any) {
     try {
-      fs.writeFileSync(
-        Hexley.databaseLocalDir,
-        JSON.stringify(this._localDB, null, 2),
-      );
+      fs.writeFileSync(Hexley.databaseLocalDir, JSON.stringify(this._localDB, null, 2));
     } catch (error: any) {
-      Hexley.log(
-        `${Hexley.frameworks.aurora.colorText("[databaseFramework/_saveLocalDB]", this.frameworkColor)} Error saving local database: ${error.message}`,
-      );
+      Hexley.log(`${Hexley.frameworks.aurora.colorText('[databaseFramework/_saveLocalDB]', this.frameworkColor)} Error saving local database: ${error.message}`);
     }
   },
 

@@ -9,13 +9,20 @@ DATABASE_MODE = Local
 HEXSHELL_ENABLED = TRUE
 
 # Discord.JS Variables
-DISCORD_TOKEN =
-GUILD_ID =
+DISCORD_TOKEN = exampleToken
+GUILD_ID = exampleGuildId
+
+# Hexley Endpoint Variables
+SERVER_HOSTNAME = 192.168.0.0
+ENDPOINT_PORT = 443
+ENABLE_HTTPS = TRUE
+HTTPS_CERT_PATH = /path/to/fullchain1.pem
+HTTPS_KEY_PATH= /path/to/privkey1.pem
 
 # Hexley Authentication Variables
 AUTHENTICATION_AUTO = FALSE
-AUTHENTICATION_USER =
-AUTHENTICATION_PASSWORD =
+AUTHENTICATION_USER = root
+AUTHENTICATION_PASSWORD = password
 
 # Hexley Session Variables
 SESSION_AUTORUN_BUD =
@@ -23,15 +30,15 @@ SESSION_AUTORUN_ARGS =
 
 # Sequelizer Variables
 DB_NAME = HexleyBrain
-DB_USER =
-DB_PASSWORD =
+DB_USER = root
+DB_PASS = example
 DB_HOST = localhost
 DB_PORT = 3306
 
 # User IDs
-SPECIAL_USER_IDS = 1, 2, 3
+SPECIAL_USER_IDS =
 HEXLEY_USER_ID =
-MAINTAINER_USER_ID =
+ROYALGRAPHX_USER_ID =
 
 # Default Role Variables
 ANNOUNCEMENTS_ROLE_ID =
