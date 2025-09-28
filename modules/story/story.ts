@@ -167,7 +167,7 @@ export const story = {
 
     if (valid) {
       if (storyDB.last_user === message.author.id) {
-        //valid = false;
+        valid = false;
         angryMessage = `<@${message.author.id}> you can't add to the story twice in a row!`;
         twiceInARow = true;
       }
