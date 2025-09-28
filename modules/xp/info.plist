@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>Module Name</key>
+    <string>xp</string>
+    <key>Module Description</key>
+    <string>Provides slash commands to interact with the experience framework.</string>
+    <key>Module Version</key>
+    <string>1.0.0</string>
+    <key>Module Identifier</key>
+    <string>hex.carnations.xp</string>
+    <key>Module Structure</key>
+    <dict>
+      <key>Main</key>
+      <string>xp.ts</string>
+    </dict>
+    <key>Module Abilities</key>
+    <dict>
+      <key>canInitSlashCommands</key>
+      <true/>
+    </dict>
+    <key>Module Environment</key>
+    <dict/>
+    <key>Module Settings</key>
+    <dict>
+      <key>enabled</key>
+      <true/>
+      <key>moduleEntryPoint</key>
+      <string>xpInit</string>
+      <key>depsOn</key>
+      <string>discordFramework, experienceFramework</string>
+      <key>hasPreviousInit</key>
+      <true/>
+      <key>debugMode</key>
+      <false/>
+    </dict>
+    <key>Module Commands</key>
+    <dict>
+      <key>xp</key>
+      <string>Check your or another user's experience points.</string>
+      <key>leaderboard</key>
+      <string>Display the server's top 10 XP earners.</string>
+      <key>ranks</key>
+      <string>Display the list of all available ranks and their XP requirements.</string>
+      <key>giftxp</key>
+      <string>Gift some of your experience points to another user.</string>
+      <key>setxp</key>
+      <string>Set a user's experience points to a specific value.</string>
+      <key>addxp</key>
+      <string>Add experience points to a user.</string>
+      <key>removexp</key>
+      <string>Remove experience points from a user.</string>
+    </dict>
+    <key>Module Command Arguments</key>
+    <dict>
+      <key>xp</key>
+      <string>user</string>
+      <key>leaderboard</key>
+      <string>None</string>
+      <key>ranks</key>
+      <string>None</string>
+      <key>giftxp</key>
+      <string>user,amount</string>
+      <key>setxp</key>
+      <string>user,amount</string>
+      <key>addxp</key>
+      <string>user,amount</string>
+      <key>removexp</key>
+      <string>user,amount</string>
+    </dict>
+    <key>Module Command Arg Type</key>
+    <dict>
+      <key>user</key>
+      <integer>6</integer>
+      <key>amount</key>
+      <integer>4</integer>
+    </dict>
+    <key>Module Command Arg Descriptions</key>
+    <dict>
+      <key>user</key>
+      <string>The user you want to interact with.</string>
+      <key>amount</key>
+      <string>The amount of XP.</string>
+    </dict>
+    <key>Module Command Arg Requirement</key>
+    <dict>
+      <key>xp</key>
+      <dict>
+        <key>user</key>
+        <false/>
+      </dict>
+      <key>giftxp</key>
+      <dict>
+        <key>user</key>
+        <true/>
+        <key>amount</key>
+        <true/>
+      </dict>
+      <key>setxp</key>
+      <dict>
+        <key>user</key>
+        <true/>
+        <key>amount</key>
+        <true/>
+      </dict>
+      <key>addxp</key>
+      <dict>
+        <key>user</key>
+        <true/>
+        <key>amount</key>
+        <true/>
+      </dict>
+      <key>removexp</key>
+      <dict>
+        <key>user</key>
+        <true/>
+        <key>amount</key>
+        <true/>
+      </dict>
+    </dict>
+  </dict>
+</plist>

@@ -4,7 +4,6 @@ import path from 'path';
 import * as dotenv from 'dotenv';
 import EventEmitter from 'events';
 import { v4 as uuidv4 } from 'uuid';
-import { file, sleep } from 'bun';
 
 // Function to get the current User's Username
 function getCurrentUsername() {
@@ -165,6 +164,8 @@ export const Hexley = {
     loaderLoaded: false, //
     versionLoad: true, // not a user defined variable
     versionLoaded: false, //
+    experienceLoad: true, // not a user defined variable
+    experienceLoaded: false,
     auroraLoad: false,
     auroraLoaded: false,
     discordLoad: false,
@@ -187,7 +188,7 @@ export const Hexley = {
     username: "",
     rootUUID: "",
     kernelString: "",
-    versionNumber: "0.0.0",
+    versionNumber: "3.0.0",
     debugMode: false,
     core: new EventEmitter(),
     sequelize: null as any,
@@ -323,7 +324,7 @@ const resourcesToScan = [
     {
         name: 'Private Frameworks',
         path: Hexley.privateFrameworksRootPath,
-        ignoreList: ['endpointFramework', 'filesystemFramework', 'hexShellFramework', 'auroraFramework', 'discordFramework', 'loaderFramework', 'registryFramework', 'databaseFramework', 'versionFramework', '.DS_Store'],
+        ignoreList: ['experienceFramework', 'endpointFramework', 'filesystemFramework', 'hexShellFramework', 'auroraFramework', 'discordFramework', 'loaderFramework', 'registryFramework', 'databaseFramework', 'versionFramework', '.DS_Store'],
         counter: 'frameworksLoadedCount'
     },
     {
@@ -370,13 +371,9 @@ if (Hexley.hexShellLoad) {
     Hexley.frameworks.hexShell = hexShellFramework;
     await Hexley.frameworks.hexShell.initializeShell(Hexley);
 
-    Hexley.core.once('registryFramework.ready', () => {
+    Hexley.core.once('registryFramework.ready', async () => {
         const plistPath = path.join(Hexley.privateFrameworksRootPath, 'hexShellFramework', 'info.plist');
-        Hexley.frameworks.registry.addEntryByPlist(Hexley, plistPath);
-    });
-
-    Hexley.core.once('versionFramework.ready', () => {
-        Hexley.frameworks.version.addVersionEntry(Hexley, 'hexShellFramework', 'Framework', '1.0.0');
+        await Hexley.frameworks.registry.addEntryByPlist(Hexley, plistPath);
     });
 
 } else {
@@ -415,32 +412,27 @@ if (Hexley.databaseLoad) {
 if (Hexley.databaseLoad && Hexley.debugMode) {
     log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)} Beginning database connection debug dump...`);
     
-    if (Hexley.databaseMode === 'Sequelizer') {
-        const databases = Object.keys(Hexley.database);
-        if (databases.length > 0) {
-            for (const dbName of databases) {
-                log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   - Found database: "${dbName}"`);
-                const sequelizeInstance = Hexley.database[dbName];
-                if (sequelizeInstance) {
-                    const { host, port, dialect } = sequelizeInstance.options;
-                    log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}     - Host: ${host}, Port: ${port}, Dialect: ${dialect}`);
-                    
-                    try {
-                        const tables = await Hexley.frameworks.database.getDatabaseTables(Hexley, dbName);
-                        log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}     - Tables: [${tables.join(', ')}]`);
-                    } catch (error) {
-                        log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintRed)}     - Error fetching tables: ${error}`);
-                    }
-                }
+    try {
+        const tables = await Hexley.frameworks.database.getTables();
+        
+        if (Hexley.databaseMode === 'Sequelizer') {
+            log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   - Mode: Sequelizer`);
+            if (tables.length > 0) {
+                log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   - Tables: [${tables.join(', ')}]`);
+            } else {
+                log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   - No tables found in the database.`);
             }
-        } else {
-            log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)} No active Sequelizer database connections found.`);
+        } else { // Local Mode
+            log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   - Mode: Local`);
+            log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   - File: ${Hexley.databaseLocalDir}`);
+            if (tables.length > 0) {
+                log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   - Tables: [${tables.join(', ')}]`);
+            } else {
+                log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   - No tables found in the local database file.`);
+            }
         }
-    } else { // Local Mode
-        const tables = await Hexley.frameworks.database.getDatabaseTables(Hexley, '');
-        log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   - Mode: Local`);
-        log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   - File: ${Hexley.databaseLocalDir}`);
-        log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   - Tables: [${tables.join(', ')}]`);
+    } catch (error: any) {
+        log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintRed)} Error during database debug dump: ${error.message}`);
     }
 
     log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)} Finished database connection debug dump.`);
@@ -450,7 +442,14 @@ if (Hexley.databaseLoad && Hexley.debugMode) {
 log(`${Hexley.frameworks.aurora.colorText('[hexleyCore]', Hexley.frameworks.aurora.tintGray)} Loading Version framework...`)
 const { versionFramework } = await import(path.join(Hexley.privateFrameworksRootPath, 'versionFramework/versionFramework.ts'))
 Hexley.frameworks.version = versionFramework;
-await Hexley.frameworks.version.initializeVersionFramework(Hexley); 
+await Hexley.frameworks.version.initializeVersionFramework(Hexley);
+
+// Experience Framework Initialization Logic
+log(`${Hexley.frameworks.aurora.colorText('[hexleyCore]', Hexley.frameworks.aurora.tintGray)} Loading Experience framework...`)
+const { experienceFramework } = await import(path.join(Hexley.privateFrameworksRootPath, 'experienceFramework/experienceFramework.ts'))
+Hexley.frameworks.experience = experienceFramework;
+await Hexley.frameworks.experience.initExperience(Hexley); 
+Hexley.experienceLoaded = true;
 
 // Registry Framework Initialization Logic
 log(`${Hexley.frameworks.aurora.colorText('[hexleyCore]', Hexley.frameworks.aurora.tintGray)} Loading Registry framework...`);
@@ -706,7 +705,6 @@ if (Hexley.debugMode && Hexley.filesystemLoaded && wantDumpDebugBlock) {
 if (Hexley.hexShellLoad) {
     const modulePlistPath = path.join(Hexley.modulesRootPath, 'hexShell', 'info.plist');
     await Hexley.frameworks.registry.addEntryByPlist(Hexley, modulePlistPath);
-    await Hexley.frameworks.version.addVersionEntry(Hexley, 'hexShell', 'Module', '1.0.0');
     const { hexShell } = await import(path.join(Hexley.modulesRootPath, 'hexShell/hexShell.ts'));
 
     // Initial Boot Process has wrapped up, lets log out what we've done

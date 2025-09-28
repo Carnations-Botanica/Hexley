@@ -1,13 +1,9 @@
+// modules/version/version.ts
+
 import { Events, EmbedBuilder, type Interaction } from 'discord.js';
 
-// Define an interface for the version information
-interface VersionInfo {
-    version: string;
-    type: string;
-}
-
 /**
- * The globally accessible module object.
+ * The globally accessible module object for the Version command.
  */
 export const version = {
 
@@ -25,84 +21,51 @@ export const version = {
         if (Hexley.discordLoaded) {
             Hexley.frameworks.discord.client.on(Events.InteractionCreate, async (interaction: Interaction) => {
                 if (!interaction.isChatInputCommand() || interaction.commandName !== 'version') return;
+                if (!interaction.member) return;
 
                 await interaction.deferReply();
 
-                // Define which types to display in the embed
-                // const typesToShow = ['Kernel', 'Module'];
-                // const typesToShow = ['Kernel', 'Framework', 'Module'];
-                const typesToShow = ['Framework', 'Module'];
-                // const typesToShow = ['Module'];
-                let sourcedFrom = 'an unknown source';
+                const allEntries = await Hexley.frameworks.version.getAllVersionEntries(Hexley);
 
                 const versionEmbed = new EmbedBuilder()
                     .setColor(Hexley.frameworks.discord.getUserRoleColor(interaction.member))
                     .setTitle('Hexley says...')
                     .setTimestamp();
 
-                // Prioritize databaseFramework for detailed version info
-                if (Hexley.databaseLoaded) {
-                    sourcedFrom = 'databaseFramework';
-                    
-                    const versionTable = { options: { tableName: 'versionTable' } };
-                    const allEntries = await Hexley.frameworks.database.getTableDefinitionEntries(Hexley, process.env.DB_NAME, versionTable);
-                    
-                    const filteredEntries = allEntries.filter((entry: any) => typesToShow.includes(entry.type));
-
-                    if (filteredEntries.length > 0) {
-                        const includedTypes = ['Modules', 'Frameworks'];
-                        versionEmbed.setDescription(`Here are all the versions of the loaded ${includedTypes.join(' and ')}.`);
-
-                        for (const entryData of filteredEntries) {
-                            versionEmbed.addFields({ name: entryData.name, value: `Version: ${entryData.version}\nType: ${entryData.type}`, inline: true });
+                if (allEntries.length > 0) {
+                    const groupedEntries: { [key: string]: any[] } = {};
+                    for (const entry of allEntries) {
+                        if (!groupedEntries[entry.type]) {
+                            groupedEntries[entry.type] = [];
                         }
-                    } else {
-                        versionEmbed.setDescription('No version information found for the specified types.');
+                        groupedEntries[entry.type]!.push(entry);
                     }
-                    
+
+                    for (const type in groupedEntries) {
+                        const entriesOfType = groupedEntries[type];
+                        if (!entriesOfType) continue;
+
+                        const value = entriesOfType.map((e: any) => `\`${e.name.padEnd(20, ' ')} ${e.version}\``).join('\n');
+                        versionEmbed.addFields({ name: `❯ ${type}s`, value: value, inline: false });
+                    }
+
+                    const kernelCount = allEntries.filter((entry: any) => entry.type === 'Kernel').length;
                     const moduleCount = allEntries.filter((entry: any) => entry.type === 'Module').length;
+                    const driverCount = allEntries.filter((entry: any) => entry.type === 'Driver').length;
                     const frameworkCount = allEntries.filter((entry: any) => entry.type === 'Framework').length;
-                    versionEmbed.setFooter({ text: `Modules: ${moduleCount} | Frameworks: ${frameworkCount}` });
+                    const totalCount = kernelCount + moduleCount + frameworkCount + driverCount;
+                    const description = `Here are all ${totalCount} entries in the version table.`;
+                    versionEmbed.setFooter({ text: `Frameworks: ${frameworkCount} | Modules: ${moduleCount} | Drivers: ${driverCount}` });
+                    versionEmbed.setDescription(description);
 
-                } 
-                // Fallback to the global Hexley.versions object
-                else if (Hexley.versions && Object.keys(Hexley.versions).length > 0) {
-                    sourcedFrom = 'Hexley.versions';
-                    versionEmbed.setDescription('Here are all the versions from the global versions object.');
-                    
-                    let entriesAdded = 0;
-                    for (const name in Hexley.versions) {
-                        if (Object.prototype.hasOwnProperty.call(Hexley.versions, name)) {
-                            const data = Hexley.versions[name];
-                            if (typesToShow.includes(data.type)) {
-                                versionEmbed.addFields({ name: name, value: `Version: ${data.version}\nType: ${data.type}`, inline: true });
-                                entriesAdded++;
-                            }
-                        }
-                    }
-
-                    if (entriesAdded === 0) {
-                        versionEmbed.setDescription('No version information found for the specified types.');
-                    }
-
-                    const allEntries: VersionInfo[] = Object.values(Hexley.versions);
-                    const moduleCount = allEntries.filter(entry => entry.type === 'Module').length;
-                    const frameworkCount = allEntries.filter(entry => entry.type === 'Framework').length;
-                    versionEmbed.setFooter({ text: `Modules: ${moduleCount} | Frameworks: ${frameworkCount}` });
-                } 
-                // If no data is available
-                else {
-                    sourcedFrom = 'N/A';
-                    versionEmbed.setDescription('Cannot fetch system version data at this time.');
+                } else {
+                    versionEmbed.setDescription('Could not find any version information.');
                 }
 
                 await interaction.editReply({ embeds: [versionEmbed] });
-                Hexley.log(`${Hexley.frameworks.aurora.colorText('[version/interaction]', this.moduleColor)} Replied to ${interaction.user.username} (${interaction.user.id}) with version information from ${sourcedFrom}.`);
             });
         }
         
         Hexley.log(`${Hexley.frameworks.aurora.colorText('[version/versionInit]', this.moduleColor)} Initialized Version Module successfully!`);
-    
     },
-
-}
+};

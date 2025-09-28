@@ -5,19 +5,19 @@
 	<key>Framework Type</key>
 	<string>Private</string>
 	<key>Framework Entry</key>
-	<string>initializeDatabaseConnection</string>
+	<string>initExperience</string>
 	<key>Framework Name</key>
-	<string>databaseFramework</string>
+	<string>experienceFramework</string>
 	<key>Framework Description</key>
-	<string>Provides Hexley a database for storing information!</string>
+	<string>A framework to manage user experience points (XP).</string>
 	<key>Framework Version</key>
 	<string>1.0.0</string>
 	<key>Framework Identifier</key>
-	<string>hex.carnations.databaseFramework</string>
+	<string>hex.carnations.experienceFramework</string>
 	<key>Framework Structure</key>
 	<dict>
 		<key>Main</key>
-		<string>databaseFramework.ts</string>
+		<string>experienceFramework.ts</string>
 	</dict>
 </dict>
 </plist>

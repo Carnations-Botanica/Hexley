@@ -120,10 +120,6 @@ export const filesystemFramework = {
             Hexley.frameworks.registry.addEntryByPlist(Hexley, plistPath);
         });
 
-        Hexley.core.once('versionFramework.ready', () => {
-            Hexley.frameworks.version.addVersionEntry(Hexley, 'filesystemFramework', 'Framework', '1.0.0');
-        });
-
         Hexley.filesystemLoaded = true;
         Hexley.log(`${Hexley.frameworks.aurora.colorText('[filesystemFramework/initializeFilesystem]', this.frameworkColor)} Initialized! Filesystem Framework is now ready.`);
     },

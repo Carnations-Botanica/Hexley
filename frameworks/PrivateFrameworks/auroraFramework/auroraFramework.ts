@@ -90,11 +90,6 @@ export const auroraFramework = {
             Hexley.frameworks.registry.addEntryByPlist(Hexley, plistPath);
         });
 
-        // Listen for versionFramework.ready and add the version to the database.
-        Hexley.core.once('versionFramework.ready', () => {
-            Hexley.frameworks.version.addVersionEntry(Hexley, 'auroraFramework', 'Framework', '1.0.0');
-        });
-
         // Also add to the in-memory versions object
         Hexley.versions['auroraFramework'] = { version: '1.0.0', type: 'Framework' };
 

@@ -4,6 +4,12 @@ import plist from 'plist';
 import { type EntryInfo } from '../../PrivateFrameworks/registryFramework/registryFramework.ts'; // Import the master type
 import { ApplicationCommandOptionType } from 'discord.js';
 
+interface CommandArgRequirements {
+    [commandName: string]: {
+        [argName: string]: boolean;
+    };
+}
+
 interface FrameworkPlist {
     'Framework Name': string;
     'Framework Description': string;
@@ -42,7 +48,7 @@ interface ModulePlist {
     'Module Command Arguments'?: { [commandName: string]: string };
     'Module Command Arg Type'?: { [argName: string]: number };
     'Module Command Arg Descriptions'?: { [argName: string]: string };
-    'Module Command Arg Requirement'?: { [argName: string]: boolean };
+    'Module Command Arg Requirement'?: CommandArgRequirements;
 }
 
 /**
@@ -59,9 +65,7 @@ export const loaderFramework = {
         Hexley.log(`${Hexley.frameworks.aurora.colorText('[loaderFramework/initializeLoader]', this.loaderColor)} Initializing...`);
 
         const plistPath = path.join(Hexley.privateFrameworksRootPath, 'loaderFramework', 'info.plist');
-        Hexley.frameworks.registry.addEntryByPlist(Hexley, plistPath);
-
-        Hexley.frameworks.version.addVersionEntry(Hexley, 'loaderFramework', 'Framework', '1.0.0');
+        await Hexley.frameworks.registry.addEntryByPlist(Hexley, plistPath);
         
         Hexley.loaderLoaded = true;
         
@@ -143,10 +147,6 @@ export const loaderFramework = {
                 await Hexley.frameworks.registry.addToRegistry(Hexley, entry);
             }
 
-            if (Hexley.versionLoaded) {
-                Hexley.frameworks.version.addVersionEntry(Hexley, entry.Name, 'Framework', entry.Version);
-            }
-
             const mainFilePath = path.join(requestedFrameworkRootPath, entry.Structure.Main);
             // By convention, the exported object name is the same as the framework's name.
             const entryObjectName = entry.Name; 
@@ -209,7 +209,7 @@ export const loaderFramework = {
                 'Command Arguments': parsedData['Module Command Arguments'],
                 'Command Arg Type': parsedData['Module Command Arg Type'],
                 'Command Arg Descriptions': parsedData['Module Command Arg Descriptions'],
-                'Command Arg Requirement': parsedData['Module Command Arg Requirement']
+                'Command Arg Requirement': (parsedData as any)['Module Command Arg Requirement']
             };
             
             // Check if the module is enabled
@@ -245,9 +245,6 @@ export const loaderFramework = {
             // If dependency checks pass, add to registry and versions
             if (Hexley.registryLoaded) {
                 await Hexley.frameworks.registry.addToRegistry(Hexley, entry);
-            }
-            if (Hexley.versionLoaded) {
-                await Hexley.frameworks.version.addVersionEntry(Hexley, entry.Name, 'Module', entry.Version);
             }
 
             // Dynamic Module Loading and Execution
@@ -317,12 +314,17 @@ export const loaderFramework = {
                         await Hexley.frameworks.discord.initBasicSlashCommand(Hexley, lowerCaseCommandName, commandDescription, moduleDebugMode);
                     } else {
                         const argNames = argsString.split(',').map((arg: any) => arg.trim());
-                        const commandArgs = argNames.map((argName: any) => ({
-                            name: argName.toLowerCase(),
-                            description: entry['Command Arg Descriptions']?.[argName] ?? 'No description provided.',
-                            type: entry['Command Arg Type']?.[argName] ?? ApplicationCommandOptionType.String,
-                            required: entry['Command Arg Requirement']?.[argName] ?? false
-                        }));
+                        const commandArgs = argNames.map((argName: any) => {
+                            // Look up the requirement in the nested structure for better granular control
+                            const isRequired = (entry as any)['Command Arg Requirement']?.[commandName]?.[argName] ?? false;
+                            
+                            return {
+                                name: argName.toLowerCase(),
+                                description: entry['Command Arg Descriptions']?.[argName] ?? 'No description provided.',
+                                type: entry['Command Arg Type']?.[argName] ?? ApplicationCommandOptionType.String,
+                                required: isRequired
+                            };
+                        });
                         await Hexley.frameworks.discord.initArgdSlashCommand(Hexley, lowerCaseCommandName, commandDescription, commandArgs, moduleDebugMode);
                     }
                 }

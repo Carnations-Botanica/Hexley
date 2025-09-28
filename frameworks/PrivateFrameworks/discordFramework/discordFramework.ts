@@ -143,9 +143,6 @@ export const discordFramework = {
             // Register the module to registry
             const plistPath = path.join(Hexley.privateFrameworksRootPath, 'discordFramework', 'info.plist');
             await Hexley.frameworks.registry.addEntryByPlist(Hexley, plistPath);
-            
-            // Add to Versions object + sequelizer
-            await Hexley.frameworks.version.addVersionEntry(Hexley, 'discordFramework', 'Framework', '1.0.0');
 
             // Emit the ready signal on the core event emitter
             Hexley.core.emit('discordClient.ready', loggedInClient);

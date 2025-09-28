@@ -1,0 +1,23 @@
+[
+    { "threshold": 10000, "name": "Eternal Bloom" },
+    { "threshold": 9500, "name": "Lotus Blossom" },
+    { "threshold": 9000, "name": "Dahlia" },
+    { "threshold": 8500, "name": "Hibiscus" },
+    { "threshold": 8000, "name": "Lotus" },
+    { "threshold": 7500, "name": "Cherry Blossom" },
+    { "threshold": 7000, "name": "Iris" },
+    { "threshold": 6500, "name": "Peony" },
+    { "threshold": 6000, "name": "Daisy" },
+    { "threshold": 5500, "name": "Tulip" },
+    { "threshold": 5000, "name": "Lily" },
+    { "threshold": 4500, "name": "Rose" },
+    { "threshold": 4000, "name": "Sunflower" },
+    { "threshold": 3500, "name": "Orchid" },
+    { "threshold": 3000, "name": "Flourish" },
+    { "threshold": 2500, "name": "Bloom" },
+    { "threshold": 2000, "name": "Petal" },
+    { "threshold": 1500, "name": "Bud" },
+    { "threshold": 1000, "name": "Blossom" },
+    { "threshold": 500, "name": "Sprout" },
+    { "threshold": 1, "name": "Seedling" }
+]

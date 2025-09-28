@@ -32,13 +32,13 @@ export const endpointFramework = {
         const logColor = `#e9edc9`;
 
         if (denied) {
-            Hexley.log(`${aurora.colorText('[endpointFramework/fetch]', logColor)} ${aurora.colorText(request.method, logColor)} request for ${aurora.colorText(new URL(request.url).pathname, logColor)} from ${aurora.colorText(clientIp, logColor)} -> Denied (${aurora.colorText(`${duration}ms`, logColor)})`);
+            Hexley.log(`${aurora.colorText('[endpointFramework/denied]', logColor)} ${aurora.colorText(request.method, logColor)} request for ${aurora.colorText(new URL(request.url).pathname, logColor)} from ${aurora.colorText(clientIp, logColor)} -> Denied (${aurora.colorText(`${duration}ms`, logColor)})`);
         } else if (apiHandled) {
-            Hexley.log(`${aurora.colorText('[endpointFramework/fetch]', logColor)} API request handled for ${aurora.colorText(new URL(request.url).pathname, logColor)} from ${aurora.colorText(clientIp, logColor)} -> (${aurora.colorText(`${duration}ms`, logColor)})`);
+            Hexley.log(`${aurora.colorText('[endpointFramework/apiHandled]', logColor)} API request handled for ${aurora.colorText(new URL(request.url).pathname, logColor)} from ${aurora.colorText(clientIp, logColor)} -> (${aurora.colorText(`${duration}ms`, logColor)})`);
         } else if (found) {
-            Hexley.log(`${aurora.colorText('[endpointFramework/fetch]', logColor)} Served ${aurora.colorText(request.method, logColor)} request for ${aurora.colorText(new URL(request.url).pathname, logColor)} from ${aurora.colorText(clientIp, logColor)} -> File: ${aurora.colorText(filePath, logColor)} in (${aurora.colorText(`${duration}ms`, logColor)})`);
+            Hexley.log(`${aurora.colorText('[endpointFramework/found]', logColor)} Served ${aurora.colorText(request.method, logColor)} request for ${aurora.colorText(new URL(request.url).pathname, logColor)} from ${aurora.colorText(clientIp, logColor)} -> File: ${aurora.colorText(filePath, logColor)} in (${aurora.colorText(`${duration}ms`, logColor)})`);
         } else {
-            Hexley.log(`${aurora.colorText('[endpointFramework/fetch]', logColor)} ${aurora.colorText(request.method, logColor)} request for ${aurora.colorText(new URL(request.url).pathname, logColor)} from ${aurora.colorText(clientIp, logColor)} -> File: ${aurora.colorText(filePath, logColor)} Not Found (${aurora.colorText(`${duration}ms`, logColor)})`);
+            Hexley.log(`${aurora.colorText('[endpointFramework/logEndpointRequest]', logColor)} ${aurora.colorText(request.method, logColor)} request for ${aurora.colorText(new URL(request.url).pathname, logColor)} from ${aurora.colorText(clientIp, logColor)} -> File: ${aurora.colorText(filePath, logColor)} Not Found (${aurora.colorText(`${duration}ms`, logColor)})`);
         }
     },
 
@@ -230,13 +230,9 @@ export const endpointFramework = {
             this._serverInstance = null;
         }
 
-        Hexley.core.once('registryFramework.ready', () => {
+        Hexley.core.once('registryFramework.ready', async () => {
             const plistPath = path.join(Hexley.privateFrameworksRootPath, 'endpointFramework', 'info.plist');
-            Hexley.frameworks.registry.addEntryByPlist(Hexley, plistPath);
-        });
-
-        Hexley.core.once('versionFramework.ready', () => {
-            Hexley.frameworks.version.addVersionEntry(Hexley, 'endpointFramework', 'Framework', '1.0.0');
+            await Hexley.frameworks.registry.addEntryByPlist(Hexley, plistPath);
         });
 
         Hexley.versions['endpointFramework'] = { version: '1.0.0', type: 'Framework' };

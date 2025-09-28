@@ -41,16 +41,12 @@ export const registryFramework = {
      */
     initializeRegistry(Hexley: any) {
         Hexley.log(`${Hexley.frameworks.aurora.colorText('[registryFramework/initializeRegistry]', this.registryColor)} Initializing...`);
-
-        // Listen for versionFramework.ready and add the version then.
-        Hexley.core.once('versionFramework.ready', () => {
-            Hexley.frameworks.version.addVersionEntry(Hexley, 'registryFramework', 'Framework', '1.0.0');
-        });
-        
         Hexley.registryLoaded = true;
 
-        // Emit a ready event when initialization is complete
+        // Emit a ready event to register all previously waiting frameworks
+        Hexley.log(`${Hexley.frameworks.aurora.colorText('[registryFramework/initializeRegistry]', this.registryColor)} Notifying the system we're initializing.`);
         Hexley.core.emit('registryFramework.ready');
+        Hexley.frameworks.version.addVersionEntry(Hexley, 'registryFramework', 'Framework', '1.0.0');
         
         Hexley.log(`${Hexley.frameworks.aurora.colorText('[registryFramework/initializeRegistry]', this.registryColor)} Initialized! The Registry is now accepting requests.`);
     },
@@ -112,13 +108,18 @@ export const registryFramework = {
      * @param {any} Hexley - The main Hexley global object.
      * @param {EntryInfo} entryInfo - An object containing the resource's details.
      */
-    addToRegistry(Hexley: any, entryInfo: EntryInfo) {
+    async addToRegistry(Hexley: any, entryInfo: EntryInfo) {
         if (typeof entryInfo !== 'object' || !entryInfo || !entryInfo['Name']) {
             Hexley.log(`[registryFramework] Error: Invalid entry information provided.`);
             return;
         }
 
         this.globalRegistryBuffer.push(entryInfo);
+
+        // Automatically add the version to the version framework
+        if (Hexley.versionLoaded && entryInfo.Type && entryInfo.Version) {
+            await Hexley.frameworks.version.addVersionEntry(Hexley, entryInfo.Name, entryInfo.Type, entryInfo.Version);
+        }
 
         Hexley.log(`${Hexley.frameworks.aurora.colorText('[registryFramework/addToRegistry]', this.registryColor)} Added entry: ${entryInfo['Name']}`);
         if (Hexley.debugMode) {

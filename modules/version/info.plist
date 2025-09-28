@@ -29,7 +29,7 @@
 		<key>moduleEntryPoint</key>
 		<string>versionInit</string>
 		<key>depsOn</key>
-		<string>discordFramework</string>
+		<string>discordFramework, versionFramework</string>
 		<key>hasPreviousInit</key>
 		<true/>
 		<key>debugMode</key>
