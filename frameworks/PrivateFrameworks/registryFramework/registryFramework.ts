@@ -44,9 +44,12 @@ export const registryFramework = {
         Hexley.registryLoaded = true;
 
         // Emit a ready event to register all previously waiting frameworks
-        Hexley.log(`${Hexley.frameworks.aurora.colorText('[registryFramework/initializeRegistry]', this.registryColor)} Notifying the system we're initializing.`);
+        Hexley.log(`${Hexley.frameworks.aurora.colorText('[registryFramework/initializeRegistry]', this.registryColor)} Notifying the system we're initializing...`);
         Hexley.core.emit('registryFramework.ready');
-        Hexley.frameworks.version.addVersionEntry(Hexley, 'registryFramework', 'Framework', '1.0.0');
+        
+        // The Registry registers itself using its own info.plist
+        const plistPath = path.join(Hexley.privateFrameworksRootPath, 'registryFramework', 'info.plist');
+        this.addEntryByPlist(Hexley, plistPath);
         
         Hexley.log(`${Hexley.frameworks.aurora.colorText('[registryFramework/initializeRegistry]', this.registryColor)} Initialized! The Registry is now accepting requests.`);
     },

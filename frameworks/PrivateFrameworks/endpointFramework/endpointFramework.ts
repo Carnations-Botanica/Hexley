@@ -23,23 +23,20 @@ export const endpointFramework = {
      * @param {string} clientIp - The IP address of the client.
      * @param {string} filePath - The file path being requested.
      * @param {string} duration - The time taken to process the request in milliseconds.
-     * @param {boolean} found - A boolean indicating if the file was found.
-     * @param {boolean} [denied=false] - A boolean indicating if the request was denied for security reasons.
-     * @param {boolean} [apiHandled=false] - A boolean indicating if the request was an API call.
+     * @param {number} status - The HTTP status code of the response.
+     * @param {string} outcome - A short description of the outcome (e.g., 'DENIED', 'API', 'SERVED', 'NOT_FOUND').
      */
-    logEndpointRequest(Hexley: any, request: Request, clientIp: string, filePath: string, duration: string, found: boolean, denied: boolean = false, apiHandled: boolean = false) {
+    logEndpointRequest(Hexley: any, request: Request, clientIp: string, filePath: string, duration: string, status: number, outcome: string) {
         const { aurora } = Hexley.frameworks;
         const logColor = `#e9edc9`;
+        
+        let statusColor = '#00ff00'; // Green for success
+        if (status >= 400) statusColor = '#ffff00'; // Yellow for client errors
+        if (status >= 500) statusColor = '#ff0000'; // Red for server errors
+        
+        const coloredStatus = aurora.colorText(status, statusColor);
 
-        if (denied) {
-            Hexley.log(`${aurora.colorText('[endpointFramework/denied]', logColor)} ${aurora.colorText(request.method, logColor)} request for ${aurora.colorText(new URL(request.url).pathname, logColor)} from ${aurora.colorText(clientIp, logColor)} -> Denied (${aurora.colorText(`${duration}ms`, logColor)})`);
-        } else if (apiHandled) {
-            Hexley.log(`${aurora.colorText('[endpointFramework/apiHandled]', logColor)} API request handled for ${aurora.colorText(new URL(request.url).pathname, logColor)} from ${aurora.colorText(clientIp, logColor)} -> (${aurora.colorText(`${duration}ms`, logColor)})`);
-        } else if (found) {
-            Hexley.log(`${aurora.colorText('[endpointFramework/found]', logColor)} Served ${aurora.colorText(request.method, logColor)} request for ${aurora.colorText(new URL(request.url).pathname, logColor)} from ${aurora.colorText(clientIp, logColor)} -> File: ${aurora.colorText(filePath, logColor)} in (${aurora.colorText(`${duration}ms`, logColor)})`);
-        } else {
-            Hexley.log(`${aurora.colorText('[endpointFramework/logEndpointRequest]', logColor)} ${aurora.colorText(request.method, logColor)} request for ${aurora.colorText(new URL(request.url).pathname, logColor)} from ${aurora.colorText(clientIp, logColor)} -> File: ${aurora.colorText(filePath, logColor)} Not Found (${aurora.colorText(`${duration}ms`, logColor)})`);
-        }
+        Hexley.log(`${aurora.colorText(`[endpointFramework/logEndpointRequest]`, logColor)} ${request.method} ${aurora.colorText(filePath, logColor)} from ${aurora.colorText(clientIp, logColor)} -> ${outcome} (${coloredStatus}) (${aurora.colorText(`${duration}ms`, logColor)})`);
     },
 
     /**
@@ -144,8 +141,8 @@ export const endpointFramework = {
         }
 
         const webRoot = '/var/www';
-        // const allowedGetRoutes = ['/api/twitch', '/', '/index.html', '/debug.html'];
         const allowedGetRoutes = ['/api/twitch'];
+        // const allowedGetRoutes = ['/api/twitch', '/', '/index.html', '/debug.html'];
 
         const enableHttps = process.env.ENABLE_HTTPS?.toLowerCase() === 'true';
         const keyPath = process.env.HTTPS_KEY_PATH;
@@ -158,57 +155,78 @@ export const endpointFramework = {
             hostname: hostname,
             async fetch(request: Request, server: any): Promise<Response> {
                 const startTime = performance.now();
-                const url = new URL(request.url);
                 const clientIp = server.requestIP(request)?.address || request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "Unknown IP";
                 const sanitizedClientIp = clientIp.startsWith("::ffff:") ? clientIp.replace("::ffff:", "") : clientIp;
+                
+                let url: URL;
+                try {
+                    const host = request.headers.get('host') || 'localhost';
+                    url = new URL(request.url, `http://${host}`);
+                } catch (error) {
+                    const duration = (performance.now() - startTime).toFixed(2);
+                    endpointFramework.logEndpointRequest(Hexley, request, sanitizedClientIp, request.url, duration, 400, 'BAD_REQUEST');
+                    return new Response("Bad Request", { status: 400, headers: { 'X-Internal-Resolve-Time': `${duration}ms` } });
+                }
+
+                const isAllowed = await Hexley.frameworks.firewall.inspectAddress(Hexley, sanitizedClientIp, url.pathname);
+                if (!isAllowed) {
+                    const duration = (performance.now() - startTime).toFixed(2);
+                    endpointFramework.logEndpointRequest(Hexley, request, sanitizedClientIp, url.pathname, duration, 403, 'DENIED');
+                    return new Response("Forbidden", { status: 403, headers: { 'X-Internal-Resolve-Time': `${duration}ms` } });
+                }
+
+                // Passed the firewall, we're going to handle this request
+                await Hexley.frameworks.firewall.incrementTotalRequests(Hexley);
 
                 if (request.method === 'POST') {
+                    const duration = (performance.now() - startTime).toFixed(2);
                     switch (url.pathname) {
                         case '/api/twitch':
                             const twitchResponse = await endpointFramework._handleTwitchWebhook(Hexley, request);
-                            endpointFramework.logEndpointRequest(Hexley, request, sanitizedClientIp, url.pathname, (performance.now() - startTime).toFixed(2), false, false, true);
+                            endpointFramework.logEndpointRequest(Hexley, request, sanitizedClientIp, url.pathname, duration, twitchResponse.status, 'API');
                             return twitchResponse;
                         case '/api/github':
                             const githubData = await request.json();
                             endpointFramework._handleGitHubWebhook(Hexley, githubData);
-                            endpointFramework.logEndpointRequest(Hexley, request, sanitizedClientIp, url.pathname, (performance.now() - startTime).toFixed(2), false, false, true);
+                            endpointFramework.logEndpointRequest(Hexley, request, sanitizedClientIp, url.pathname, duration, 200, 'API');
                             return new Response("GitHub API endpoint handled.", { status: 200 });
                         default:
-                            endpointFramework.logEndpointRequest(Hexley, request, sanitizedClientIp, url.pathname, (performance.now() - startTime).toFixed(2), false, true, false);
+                            endpointFramework.logEndpointRequest(Hexley, request, sanitizedClientIp, url.pathname, duration, 404, 'NOT_FOUND');
                             return new Response("API not found.", { status: 404 });
                     }
                 }
 
                 if (request.method === 'GET') {
                     if (allowedGetRoutes.includes(url.pathname)) {
+                        const duration = (performance.now() - startTime).toFixed(2);
+
                         if (url.pathname === '/api/twitch') {
-                            endpointFramework.logEndpointRequest(Hexley, request, sanitizedClientIp, url.pathname, (performance.now() - startTime).toFixed(2), true, false, true);
-                            return new Response("OK", { status: 200 });
+                            endpointFramework.logEndpointRequest(Hexley, request, sanitizedClientIp, url.pathname, duration, 200, 'API');
+                            return new Response("OK", { status: 200, headers: { 'X-Internal-Resolve-Time': `${duration}ms` } });
                         }
 
                         let filePath = path.join(webRoot, url.pathname === '/' ? 'index.html' : url.pathname);
                         const fileContent = Hexley.frameworks.filesystem.readFile(Hexley, filePath);
-                        const duration = (performance.now() - startTime).toFixed(2);
                         const found = !!fileContent;
-
-                        endpointFramework.logEndpointRequest(Hexley, request, sanitizedClientIp, filePath, duration, found, false, false);
                         
                         if (found) {
+                            endpointFramework.logEndpointRequest(Hexley, request, sanitizedClientIp, url.pathname, duration, 200, 'SERVED');
                             const mimeType = mime.lookup(filePath) || 'application/octet-stream';
                             return new Response(fileContent, {
                                 status: 200,
-                                headers: { 'Content-Type': mimeType }
+                                headers: { 'Content-Type': mimeType, 'X-Internal-Resolve-Time': `${duration}ms` }
                             });
                         } else {
-                            return new Response("Not Found", { status: 404 });
+                            endpointFramework.logEndpointRequest(Hexley, request, sanitizedClientIp, url.pathname, duration, 404, 'NOT_FOUND');
+                            return new Response("Not Found", { status: 404, headers: { 'X-Internal-Resolve-Time': `${duration}ms` } });
                         }
                     }
                 }
 
                 // Deny all other methods and un-allowed GET requests
                 const duration = (performance.now() - startTime).toFixed(2);
-                endpointFramework.logEndpointRequest(Hexley, request, sanitizedClientIp, url.pathname, duration, false, true, false);
-                return new Response("Method Not Allowed", { status: 405 });
+                endpointFramework.logEndpointRequest(Hexley, request, sanitizedClientIp, url.pathname, duration, 405, 'DENIED');
+                return new Response("Method Not Allowed", { status: 405, headers: { 'X-Internal-Resolve-Time': `${duration}ms` } });
             },
         };
 

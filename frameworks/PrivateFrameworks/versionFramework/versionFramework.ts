@@ -105,7 +105,7 @@ export const versionFramework = {
         }
 
         if (Hexley.databaseLoaded) {
-            return Hexley.frameworks.database.get(versionTable, { where: { name } });
+            return Hexley.frameworks.database.get(versionTable, { name: name });
         }
 
         return null;
@@ -136,7 +136,8 @@ export const versionFramework = {
         const sortOrder: { [key: string]: number } = {
             'Kernel': 1,
             'Framework': 2,
-            'Module': 3
+            'Module': 3,
+            'Driver': 4
         };
 
         // Sort the entries

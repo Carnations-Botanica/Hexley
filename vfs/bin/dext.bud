@@ -41,6 +41,22 @@ export const dext = {
                     console.log(`Failed to remove slash command with ID: ${commandId}`);
                 }
                 break;
+                
+            case 'deregisterAll':
+                if (args.length < 2 || args[1] !== 'confirm') {
+                    console.log('dext: Danger! To deregister ALL slash commands, you must provide the "confirm" argument.');
+                    console.log('Usage: dext deregisterAll confirm');
+                    return;
+                }
+                console.log('Initiating mass deregistration of slash commands...');
+                const deregisteredCount = await Hexley.frameworks.discord.deregisterAllSlashCommands(Hexley);
+                if (deregisteredCount !== null && deregisteredCount >= 0) {
+                    console.log(`Successfully deregistered ${deregisteredCount} slash command(s).`);
+                } else {
+                    console.log(`Failed to deregister slash commands. Check logs for details.`);
+                }
+                break;
+
             case 'phonebook':
                 const channelData = await Hexley.frameworks.discord.listChannels(Hexley);
                 if (!channelData) {

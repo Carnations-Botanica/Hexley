@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, Guild, Events, SlashCommandBuilder, ApplicationCommandOptionType, GuildMember } from 'discord.js';
+import { Client, GatewayIntentBits, Guild, Events, SlashCommandBuilder, ApplicationCommandOptionType, GuildMember, EmbedBuilder, Message, TextChannel } from 'discord.js';
 import path from 'path';
 
 // Define interfaces for our ID collections for strong typing
@@ -322,6 +322,39 @@ export const discordFramework = {
     },
 
     /**
+     * Removes all registered slash commands from the guild.
+     * @param {any} Hexley - The main Hexley global object for logging.
+     * @returns {Promise<number|null>} A promise that resolves to the number of commands deregistered, or null on error.
+     */
+    async deregisterAllSlashCommands(Hexley: any): Promise<number | null> {
+        if (!this.client || !this.guild) {
+            Hexley.log(`${Hexley.frameworks.aurora.colorText('[discordFramework/deregisterAllSlashCommands]', Hexley.frameworks.aurora.tintRedBright)} Error: Cannot deregister commands because the client or guild is not ready.`);
+            return null;
+        }
+
+        try {
+            const commands = await this.guild.commands.fetch();
+            if (commands.size === 0) {
+                Hexley.log(`${Hexley.frameworks.aurora.colorText('[discordFramework/deregisterAllSlashCommands]', Hexley.frameworks.aurora.tintBlurple)} No slash commands found to deregister.`);
+                return 0;
+            }
+
+            let deletedCount = 0;
+            for (const command of commands.values()) {
+                await this.guild.commands.delete(command.id);
+                deletedCount++;
+            }
+
+            Hexley.log(`${Hexley.frameworks.aurora.colorText('[discordFramework/deregisterAllSlashCommands]', Hexley.frameworks.aurora.tintBlurple)} Successfully removed ${deletedCount} slash command(s).`);
+            return deletedCount;
+        } catch (error) {
+            Hexley.log(`${Hexley.frameworks.aurora.colorText('[discordFramework/deregisterAllSlashCommands]', Hexley.frameworks.aurora.tintRedBright)} Error occurred while removing all slash commands:`);
+            console.error(error);
+            return null;
+        }
+    },
+
+    /**
      * Fetches a structured list of all channels in the guild.
      * @param {any} Hexley - The main Hexley global object.
      * @returns {Promise<object|null>} A promise that resolves to an object with structured channel data, or null if an error occurs.
@@ -380,6 +413,38 @@ export const discordFramework = {
         } catch (error) {
             return null;
         }
+    },
+
+    /**
+     * Safely fetches a channel and sends a message to it, ensuring it's a text-based channel.
+     * @param {string} channelId - The ID of the channel to send a message to.
+     * @param {string | { embeds: EmbedBuilder[] }} content - The content to send.
+     * @returns {Promise<Message | null>} The sent message object, or null on failure.
+     */
+    async sendMessageToChannel(channelId: string, content: string | { embeds: [EmbedBuilder] }): Promise<Message | null> {
+
+        if (!this.client) {
+            console.error(`[discordFramework] Attempted to send a message before the client was ready.`);
+            return null;
+        }
+
+        try {
+            let channel = await this.client.channels.fetch(channelId);
+            
+            if (channel?.partial) {
+                channel = await channel.fetch();
+            }
+            
+            if (channel && channel.isTextBased()) {
+                return await (channel as TextChannel).send(content);
+            } else {
+                console.error(`[discordFramework] Channel ${channelId} not found or is not a text-based channel.`);
+            }
+        } catch (error: any) {
+            console.error(`[discordFramework] Failed to send message to channel ${channelId}: ${error.message}`);
+        }
+        
+        return null;
     },
 
     /**

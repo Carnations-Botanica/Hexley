@@ -12,6 +12,9 @@ export const databaseFramework = {
     // This will hold the currently active database driver.
     _activeDriver: null as DatabaseDriver | null,
 
+    // Property to track the active mode
+    mode: "Local" as "Local" | "Sequelizer", 
+
     /**
      * Initializes the Database framework by loading the appropriate driver.
      * @param {any} Hexley - The main Hexley global object.
@@ -22,6 +25,8 @@ export const databaseFramework = {
 
         try {
             // Dynamically import the correct driver based on the mode.
+            const mode = Hexley.databaseMode;
+            this.mode = mode;
             const driverPath = path.join(Hexley.workingDir, 'drivers', `${mode.toLowerCase()}Driver.ts`);
             const driverModule = await import(driverPath);
             this._activeDriver = driverModule[`${mode.toLowerCase()}Driver`];
@@ -99,6 +104,18 @@ export const databaseFramework = {
     async reset(tableModel: any): Promise<void> {
         if (!this._activeDriver) return;
         await this._activeDriver.reset(tableModel);
+    },
+
+    async dropTable(tableModel: any): Promise<void> {
+        if (!this._activeDriver) return;
+        await this._activeDriver.dropTable(tableModel);
+    },
+
+    async bulkCreate(tableName: string, data: any[]): Promise<any[]> {
+        if (!this._activeDriver || typeof this._activeDriver.bulkCreate !== 'function') {
+            throw new Error(`Driver does not support bulkCreate in ${this.mode} mode.`);
+        }
+        return this._activeDriver.bulkCreate(tableName, data);
     },
 
 };

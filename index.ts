@@ -156,6 +156,8 @@ export const Hexley = {
     startTimeArray: process.hrtime(),
     filesystemLoad: true, // not a user defined variable
     filesystemLoaded: false, //
+    firewallLoad: true, // not a user defined variable
+    firewallLoaded: false, //
     endpointLoad: true, // not a user defined variable
     endpointLoaded: false, //
     registryLoad: true, // not a user defined variable
@@ -166,6 +168,8 @@ export const Hexley = {
     versionLoaded: false, //
     experienceLoad: true, // not a user defined variable
     experienceLoaded: false,
+    cooldownLoad: true, // not a user defined variable
+    cooldownLoaded: false, //
     auroraLoad: false,
     auroraLoaded: false,
     discordLoad: false,
@@ -176,6 +180,7 @@ export const Hexley = {
     hexShellLoad: true,
     hexShellLoaded: false,
     hideLogInShell: false,
+    driverDebug: false,
     architecture: "",
     platform: "",
     buildType: "",
@@ -324,7 +329,7 @@ const resourcesToScan = [
     {
         name: 'Private Frameworks',
         path: Hexley.privateFrameworksRootPath,
-        ignoreList: ['experienceFramework', 'endpointFramework', 'filesystemFramework', 'hexShellFramework', 'auroraFramework', 'discordFramework', 'loaderFramework', 'registryFramework', 'databaseFramework', 'versionFramework', '.DS_Store'],
+        ignoreList: ['firewallFramework', 'cooldownFramework', 'experienceFramework', 'endpointFramework', 'filesystemFramework', 'hexShellFramework', 'auroraFramework', 'discordFramework', 'loaderFramework', 'registryFramework', 'databaseFramework', 'versionFramework', '.DS_Store'],
         counter: 'frameworksLoadedCount'
     },
     {
@@ -350,54 +355,13 @@ log(`Framework hexleyCore successfully initialized`);
 log(`${Hexley.frameworks.aurora.colorText('[hexleyCore]', Hexley.frameworks.aurora.tintGray)} Loading Filesystem framework...`);
 const { filesystemFramework } = await import(path.join(Hexley.privateFrameworksRootPath, 'filesystemFramework/filesystemFramework.ts'));
 Hexley.frameworks.filesystem = filesystemFramework;
-Hexley.frameworks.filesystem.initializeFilesystem(Hexley);
+await Hexley.frameworks.filesystem.initializeFilesystem(Hexley);
 if (Hexley.debugMode && Hexley.databaseMode === "Local") {
     Hexley.databaseLocalDir = path.join(Hexley.filesystemRootDir, 'var', 'db.json');
     log(`[hexleyCore/Dbg] Hexley.databaseLocalDir is: ${Hexley.databaseLocalDir}`);
 }
 
-// Endpoint Framework Initialization Logic
-log(`${Hexley.frameworks.aurora.colorText('[hexleyCore]', Hexley.frameworks.aurora.tintGray)} Loading Endpoint framework...`);
-const { endpointFramework } = await import(path.join(Hexley.privateFrameworksRootPath, 'endpointFramework/endpointFramework.ts'));
-Hexley.frameworks.endpoint = endpointFramework;
-Hexley.frameworks.endpoint.initializeEndpoint(Hexley);
-
-// Conditional hexShell Module Initialization
-if (Hexley.hexShellLoad) {
-
-    // HexShell Framework Initialization Logic
-    log(`${Hexley.frameworks.aurora.colorText('[hexleyCore]', Hexley.frameworks.aurora.tintGray)} Loading HexShell framework...`);
-    const { hexShellFramework } = await import(path.join(Hexley.privateFrameworksRootPath, 'hexShellFramework/hexShellFramework.ts'));
-    Hexley.frameworks.hexShell = hexShellFramework;
-    await Hexley.frameworks.hexShell.initializeShell(Hexley);
-
-    Hexley.core.once('registryFramework.ready', async () => {
-        const plistPath = path.join(Hexley.privateFrameworksRootPath, 'hexShellFramework', 'info.plist');
-        await Hexley.frameworks.registry.addEntryByPlist(Hexley, plistPath);
-    });
-
-} else {
-    log(`${Hexley.frameworks.aurora.colorText('[hexleyCore]', Hexley.frameworks.aurora.tintGray)} hexShellFramework is disabled. Continuing...`);
-}
-
-// Aurora Framework Initialization Logic
-Hexley.auroraLoad = process.env.AURORA_ENABLED === "TRUE";
-if (Hexley.auroraLoad) {
-    log("[hexleyCore] Loading Aurora framework...");
-    const { auroraFramework } = await import(path.join(Hexley.privateFrameworksRootPath, 'auroraFramework/auroraFramework.ts'));
-    Hexley.frameworks.aurora = auroraFramework;
-    Hexley.frameworks.aurora.initializeAurora(Hexley);
-} else {
-    log("[hexleyCore] Aurora is disabled. Console output will not be colorized.");
-    Hexley.auroraLoaded = false;
-
-    // If we're in DEBUG, ensure we can still use log globally without any issues or rewrites.
-    if (Hexley.debugMode) {
-        log(`${Hexley.frameworks.aurora.colorizeText('[hexleyCore/Dbg]')} ${Hexley.frameworks.aurora.colorText('This is a test of the dummy framework! This message uses references to said Framework.', Hexley.frameworks.aurora.tintGreen)}`);
-    }
-}
-
-// Database Framework Initialization Logic (Replaced Sequelizer logic, this comment will go away next commit)
+// Database Framework Initialization Logic
 Hexley.databaseLoad = process.env.DATABASE_ENABLED === "TRUE";
 if (Hexley.databaseLoad) {
     log(`${Hexley.frameworks.aurora.colorText('[hexleyCore]', Hexley.frameworks.aurora.tintGray)} Loading Database framework...`);
@@ -438,6 +402,53 @@ if (Hexley.databaseLoad && Hexley.debugMode) {
     log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)} Finished database connection debug dump.`);
 }
 
+// Firewall Framework Initialization Logic
+log(`${Hexley.frameworks.aurora.colorText('[hexleyCore]', Hexley.frameworks.aurora.tintGray)} Loading Firewall framework...`);
+const { firewallFramework } = await import(path.join(Hexley.privateFrameworksRootPath, 'firewallFramework/firewallFramework.ts'));
+Hexley.frameworks.firewall = firewallFramework;
+await Hexley.frameworks.firewall.initializeFirewall(Hexley);
+
+// Endpoint Framework Initialization Logic
+log(`${Hexley.frameworks.aurora.colorText('[hexleyCore]', Hexley.frameworks.aurora.tintGray)} Loading Endpoint framework...`);
+const { endpointFramework } = await import(path.join(Hexley.privateFrameworksRootPath, 'endpointFramework/endpointFramework.ts'));
+Hexley.frameworks.endpoint = endpointFramework;
+await Hexley.frameworks.endpoint.initializeEndpoint(Hexley);
+
+// Conditional hexShell Module Initialization
+if (Hexley.hexShellLoad) {
+
+    // HexShell Framework Initialization Logic
+    log(`${Hexley.frameworks.aurora.colorText('[hexleyCore]', Hexley.frameworks.aurora.tintGray)} Loading HexShell framework...`);
+    const { hexShellFramework } = await import(path.join(Hexley.privateFrameworksRootPath, 'hexShellFramework/hexShellFramework.ts'));
+    Hexley.frameworks.hexShell = hexShellFramework;
+    await Hexley.frameworks.hexShell.initializeShell(Hexley);
+
+    Hexley.core.once('registryFramework.ready', async () => {
+        const plistPath = path.join(Hexley.privateFrameworksRootPath, 'hexShellFramework', 'info.plist');
+        await Hexley.frameworks.registry.addEntryByPlist(Hexley, plistPath);
+    });
+
+} else {
+    log(`${Hexley.frameworks.aurora.colorText('[hexleyCore]', Hexley.frameworks.aurora.tintGray)} hexShellFramework is disabled. Continuing...`);
+}
+
+// Aurora Framework Initialization Logic
+Hexley.auroraLoad = process.env.AURORA_ENABLED === "TRUE";
+if (Hexley.auroraLoad) {
+    log("[hexleyCore] Loading Aurora framework...");
+    const { auroraFramework } = await import(path.join(Hexley.privateFrameworksRootPath, 'auroraFramework/auroraFramework.ts'));
+    Hexley.frameworks.aurora = auroraFramework;
+    await Hexley.frameworks.aurora.initializeAurora(Hexley);
+} else {
+    log("[hexleyCore] Aurora is disabled. Console output will not be colorized.");
+    Hexley.auroraLoaded = false;
+
+    // If we're in DEBUG, ensure we can still use log globally without any issues or rewrites.
+    if (Hexley.debugMode) {
+        log(`${Hexley.frameworks.aurora.colorizeText('[hexleyCore/Dbg]')} ${Hexley.frameworks.aurora.colorText('This is a test of the dummy framework! This message uses references to said Framework.', Hexley.frameworks.aurora.tintGreen)}`);
+    }
+}
+
 // Version Framework Initialization Logic
 log(`${Hexley.frameworks.aurora.colorText('[hexleyCore]', Hexley.frameworks.aurora.tintGray)} Loading Version framework...`)
 const { versionFramework } = await import(path.join(Hexley.privateFrameworksRootPath, 'versionFramework/versionFramework.ts'))
@@ -451,20 +462,27 @@ Hexley.frameworks.experience = experienceFramework;
 await Hexley.frameworks.experience.initExperience(Hexley); 
 Hexley.experienceLoaded = true;
 
+// Cooldown Framework Initialization Logic
+log(`${Hexley.frameworks.aurora.colorText('[hexleyCore]', Hexley.frameworks.aurora.tintGray)} Loading Cooldown framework...`)
+const { cooldownFramework } = await import(path.join(Hexley.privateFrameworksRootPath, 'cooldownFramework/cooldownFramework.ts'))
+Hexley.frameworks.cooldown = cooldownFramework;
+await Hexley.frameworks.cooldown.initCooldownFramework(Hexley); 
+Hexley.cooldownLoaded = true;
+
 // Registry Framework Initialization Logic
 log(`${Hexley.frameworks.aurora.colorText('[hexleyCore]', Hexley.frameworks.aurora.tintGray)} Loading Registry framework...`);
 const { registryFramework } = await import(path.join(Hexley.privateFrameworksRootPath, 'registryFramework/registryFramework.ts'));
 const plistPath = path.join(Hexley.privateFrameworksRootPath, 'registryFramework', 'info.plist');
 Hexley.frameworks.registry = registryFramework;
-Hexley.frameworks.registry.initializeRegistry(Hexley);
-Hexley.frameworks.registry.addEntryByPlist(Hexley, plistPath);
-Hexley.versions['registryFramework'] = { version: '1.0.0', type: 'Framework' };
+await Hexley.frameworks.registry.initializeRegistry(Hexley);
+// Hexley.frameworks.registry.addEntryByPlist(Hexley, plistPath);
+// Hexley.versions['registryFramework'] = { version: '1.0.0', type: 'Framework' };
 
 // Loader Framework Initialization Logic
 log(`${Hexley.frameworks.aurora.colorText('[hexleyCore]', Hexley.frameworks.aurora.tintGray)} Loading Loader framework...`);
 const { loaderFramework } = await import(path.join(Hexley.privateFrameworksRootPath, 'loaderFramework/loaderFramework.ts'));
 Hexley.frameworks.loader = loaderFramework;
-Hexley.frameworks.loader.initializeLoader(Hexley);
+await Hexley.frameworks.loader.initializeLoader(Hexley);
 
 // Discord Framework Initialization Logic
 const isDiscordEnabled: boolean = process.env.DISCORD_ENABLED === "TRUE";
@@ -547,148 +565,54 @@ for (const resourceType of resourcesToScan) {
 // Final Debug Block
 let wantDumpDebugBlock = false;
 if (Hexley.buildType === "INTERNAL") {
-    wantDumpDebugBlock = false; // currently disabled internally
+    wantDumpDebugBlock = true;
 }
 
+// Final Debug Block
 if (Hexley.debugMode && wantDumpDebugBlock) {
-    log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)} === Final Debug Dump ===`);
-    log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}`); // For spacing
+    log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)} Beginning final consistency check...`);
+    
+    // Setup some variables
+    const registryEntries = Hexley.frameworks.registry.getAllEntries().map((entry: any) => entry.Name);
+    const versionEntries = (await Hexley.frameworks.version.getAllVersionEntries(Hexley)).map((entry: any) => entry.name);
+    const registrySet = new Set(registryEntries);
+    const versionSet = new Set(versionEntries);
+    let issuesFound = false;
 
-    // Database Dump
+    // Check for items in registry but not in versioning
+    registryEntries.forEach((name: string) => {
+        if (!versionSet.has(name)) {
+            log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintRed)}   - Discrepancy: "${name}" is in the registry but not in the version table.`);
+            issuesFound = true;
+        }
+    });
+
+    // Check for items in versioning but not in registry
+    versionEntries.forEach((name: string) => {
+        if (!registrySet.has(name)) {
+            log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintRed)}   - Discrepancy: "${name}" is in the version table but not in the registry.`);
+            issuesFound = true;
+        }
+    });
+
+    if (!issuesFound) {
+        log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGreen)}   - All checks passed. Registry and versioning are consistent.`);
+    }
+
+    // Dump all database tables if the database is loaded
     if (Hexley.databaseLoaded) {
-        const dbName = process.env.DB_NAME;
+        const dbName = Hexley.databaseMode === 'Sequelizer' ? process.env.DB_NAME : 'Local JSON';
         log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)} Dumping database entries from "${dbName}"...`);
-        try {
-            const tables = await Hexley.frameworks.database.getDatabaseTables(Hexley, dbName);
-            if (tables.length > 0) {
-                for (const tableName of tables) {
-                    log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   - Table: ${tableName}`);
-                    const tableModel = { options: { tableName: tableName } };
-                    const entries = await Hexley.frameworks.database.getTableDefinitionEntries(Hexley, dbName, tableModel);
-                    if (entries.length > 0) {
-                        log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}     - Entries:`);
-                        for (const entry of entries) {
-                            log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}       - ${JSON.stringify(entry)}`);
-                        }
-                    } else {
-                        log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}     - No entries found.`);
-                    }
-                }
-            } else {
-                log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)} No tables found in database "${dbName}".`);
-            }
-        } catch (error) {
-            log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintRed)} Error dumping tables and entries: ${error}`);
-        }
-        log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}`); // For spacing
-
-    }
-
-    // Version Dump
-    if (Hexley.versionLoaded) {
-        log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)} Dumping versions from Hexley.versions...`);
-        log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}`); // For spacing
-
-        const kernels: [string, VersionInfo][] = [];
-        const frameworks: [string, VersionInfo][] = [];
-        const modules: [string, VersionInfo][] = [];
-
-        for (const [name, data] of Object.entries(Hexley.versions)) {
-            if (data.type === 'Kernel') kernels.push([name, data]);
-            else if (data.type === 'Framework') frameworks.push([name, data]);
-            else if (data.type === 'Module') modules.push([name, data]);
-        }
-
-        log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   --- Kernels ---`);
-        for (const [name, data] of kernels) log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}     - ${name}: ${data.version}`);
-
-        log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   --- Frameworks ---`);
-        for (const [name, data] of frameworks) log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}     - ${name}: ${data.version}`);
-
-        log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   --- Modules ---`);
-        for (const [name, data] of modules) log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}     - ${name}: ${data.version}`);
-        log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}`); // For spacing
-    }
-
-    // Registry Dump
-    if (Hexley.registryLoaded) {
-        log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)} Dumping all entries from registryFramework...`);
-        const registryEntries = Hexley.frameworks.registry.getAllEntries();
-        if (registryEntries.length > 0) {
-            for (const entry of registryEntries) {
-                log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   - Name: ${entry.Name}`);
-                log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}     - Identifier: ${entry.Identifier}`);
-                log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}     - Version: ${entry.Version}`);
-            }
-        } else {
-            log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)} No entries found in the registry.`);
-        }
-        log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}`); // For spacing
-    }
-
-    // Sanity Check Block
-    log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)} Running Sanity Checks...`);
-    let inconsistenciesFound = false;
-    const allNames = new Set<string>();
-
-    const dbNames = new Set<string>();
-    if (Hexley.databaseLoaded) {
-        const dbName = process.env.DB_NAME;
-        const versionTable = { options: { tableName: 'versionTable' } };
-        const dbEntries = await Hexley.frameworks.database.getTableDefinitionEntries(Hexley, dbName, versionTable);
-        dbEntries.forEach((entry: any) => {
-            const name = entry.name; 
-            if (name !== 'hexleyCore') {
-                dbNames.add(name);
-                allNames.add(name);
-            }
-        });
-    }
-
-    const versionNames = new Set<string>();
-    if (Hexley.versionLoaded) {
-        Object.keys(Hexley.versions).forEach(name => {
-            if (name !== 'hexleyCore') {
-                versionNames.add(name);
-                allNames.add(name);
-            }
-        });
-    }
-
-    const registryNames = new Set<string>();
-    if (Hexley.registryLoaded) {
-        Hexley.frameworks.registry.getAllEntries().forEach((entry: any) => {
-            if (entry.Name !== 'hexleyCore') {
-                registryNames.add(entry.Name);
-                allNames.add(entry.Name);
-            }
-        });
-    }
-
-    for (const name of allNames) {
-        const missingFrom = [];
-        if (Hexley.databaseLoaded && !dbNames.has(name)) {
-            missingFrom.push('database');
-        }
-        if (Hexley.versionLoaded && !versionNames.has(name)) {
-            missingFrom.push('Hexley.versions');
-        }
-        if (Hexley.registryLoaded && !registryNames.has(name)) {
-            missingFrom.push('registry');
-        }
-
-        if (missingFrom.length > 0) {
-            log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintYellow)}   - Sanity Fail: "${name}" is missing from: ${missingFrom.join(', ')}.`);
-            inconsistenciesFound = true;
+        
+        const tables = await Hexley.frameworks.database.getTables();
+        for (const tableName of tables) {
+            log(`${Hexley.frameworks.aurora.colorText(`[hexleyCore/Dbg]`, Hexley.frameworks.aurora.tintGray)}   - Table: ${tableName}`);
+            const tableData = await Hexley.frameworks.database.getAll(tableName);
+            console.table(tableData);
         }
     }
 
-    if (!inconsistenciesFound) {
-        log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGreen)}   - Sanity Check Passed: All resources are consistent.`);
-    }
-    log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}`);
-    log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)} === End of Final Debug Dump ===`);
-    log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}`);
+    log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)} Finished consistency check.`);
 }
 
 // Filesystem Debug Block

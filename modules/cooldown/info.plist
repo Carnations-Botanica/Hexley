@@ -3,17 +3,17 @@
 <plist version="1.0">
   <dict>
     <key>Module Name</key>
-    <string>version</string>
+    <string>cooldown</string>
     <key>Module Description</key>
-    <string>Provides Discord Users a Version command!</string>
+    <string>Allows users to check their active cooldowns.</string>
     <key>Module Version</key>
     <string>1.0.0</string>
     <key>Module Identifier</key>
-    <string>hex.carnations.version</string>
+    <string>hex.carnations.cooldown</string>
     <key>Module Structure</key>
     <dict>
       <key>Main</key>
-      <string>version.ts</string>
+      <string>cooldown.ts</string>
     </dict>
     <key>Module Abilities</key>
     <dict>
@@ -27,9 +27,9 @@
       <key>enabled</key>
       <true/>
       <key>moduleEntryPoint</key>
-      <string>versionInit</string>
+      <string>cooldownInit</string>
       <key>depsOn</key>
-      <string>discordFramework, versionFramework</string>
+      <string>discordFramework, cooldownFramework</string>
       <key>hasPreviousInit</key>
       <true/>
       <key>debugMode</key>
@@ -37,12 +37,12 @@
     </dict>
     <key>Module Commands</key>
     <dict>
-      <key>version</key>
-      <string>Ask Hexley for all available Version data!</string>
+      <key>cooldowns</key>
+      <string>Check your active cooldowns.</string>
     </dict>
     <key>Module Command Arguments</key>
     <dict>
-      <key>version</key>
+      <key>cooldowns</key>
       <string>None</string>
     </dict>
     <key>Module Command Arg Type</key>

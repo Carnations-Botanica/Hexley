@@ -54,14 +54,18 @@ export const xp = {
     },
 
     /**
-     * Handles the /xp command.
-     */
+    * Handles the /xp command.
+    */
     async handleXp(Hexley: any, interaction: any) {
         await interaction.deferReply();
         const targetUser = interaction.options.getUser('user') ?? interaction.user;
         
         const xp = await Hexley.frameworks.experience.getXP(Hexley, targetUser.id);
         const rank = Hexley.frameworks.experience.getRank(xp);
+        
+        // Fetch all active cooldowns for the target user
+        const activeCooldowns = await Hexley.frameworks.cooldown.getAllCooldownsForUser(Hexley, targetUser.id);
+        const activeCooldownCount = activeCooldowns.length;
 
         const embed = new EmbedBuilder()
             .setColor(Hexley.frameworks.discord.getUserRoleColor(interaction.member))
@@ -69,7 +73,8 @@ export const xp = {
             .setThumbnail(targetUser.displayAvatarURL())
             .addFields(
                 { name: 'Current XP', value: xp.toLocaleString(), inline: false },
-                { name: 'Rank', value: rank, inline: false }
+                { name: 'Rank', value: rank, inline: false },
+                { name: 'Active Cooldowns', value: activeCooldownCount.toString(), inline: false },
             )
             .setTimestamp();
 
@@ -215,7 +220,7 @@ export const xp = {
      * Handles the /ranks command.
      */
     async handleRanks(Hexley: any, interaction: any) {
-        await interaction.deferReply();
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
         const ranks = Hexley.frameworks.experience._ranks; 
         const userRank = await Hexley.frameworks.experience.getRankForUser(Hexley, interaction.user.id);
 

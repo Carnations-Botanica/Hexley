@@ -40,7 +40,7 @@
       <key>xp</key>
       <string>Check your or another user's experience points.</string>
       <key>leaderboard</key>
-      <string>Display the server's top 10 XP earners.</string>
+      <string>Display the server's Top 25 XP earners.</string>
       <key>ranks</key>
       <string>Display the list of all available ranks and their XP requirements.</string>
       <key>giftxp</key>

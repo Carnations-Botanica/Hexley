@@ -54,7 +54,8 @@ export const experienceFramework = {
 
             const hexleyId = process.env.HEXLEY_USER_ID;
             if (hexleyId) {
-                const hexleyEntry = await Hexley.frameworks.database.get(xpTable, { where: { userId: hexleyId } });
+                // The 'get' function now expects the 'where' object directly.
+                const hexleyEntry = await Hexley.frameworks.database.get(xpTable, { userId: hexleyId });
                 if (!hexleyEntry) {
                     Hexley.log(`${Hexley.frameworks.aurora.colorText('[experienceFramework]', this.frameworkColor)} Seeding table with Hexley's user ID...`);
                     await this.setXP(Hexley, hexleyId, 1);
@@ -81,7 +82,7 @@ export const experienceFramework = {
     async getXP(Hexley: any, userId: string): Promise<number> {
         if (!Hexley.databaseLoaded) return 0;
         
-        let userEntry = await Hexley.frameworks.database.get(xpTable, { where: { userId } });
+        let userEntry = await Hexley.frameworks.database.get(xpTable, { userId: userId });
 
         if (!userEntry) {
             // If user does not exist, create them with 1 xp and return that.

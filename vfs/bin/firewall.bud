@@ -1,0 +1,170 @@
+/**
+ * The firewall command source code for hexShell.
+ */
+export const firewall = {
+    description: 'Inspects and manages the Firewall Framework.',
+    extendedDescription: 'Use `firewall status` to view statistics or `firewall list <type>` to view IP lists.',
+
+    /**
+     * Main entry point for the firewall command.
+     * @param {any} Hexley - The main Hexley global object.
+     * @param {string[]} args - The arguments passed to the command.
+     */
+    async main(Hexley: any, args: string[]) {
+        const aurora = Hexley.frameworks.aurora;
+        const dbFramework = Hexley.frameworks.database;
+
+        if (!Hexley.firewallLoaded || !dbFramework) {
+            console.log(aurora.colorText('Error: The Firewall Framework is not loaded.', aurora.tintRed));
+            return;
+        }
+
+        const command = args[0] || 'status';
+        const validSettings = ['isActive', 'blacklistTolerance', 'blacklistTimeout'];
+
+        // Handle standard, case-insensitive commands
+        if (command.toLowerCase() === 'status') {
+            await this._showStatus(Hexley, aurora, dbFramework);
+        } else if (command.toLowerCase() === 'list') {
+            const type = args[1] || 'all';
+            await this._listIps(Hexley, aurora, dbFramework, type);
+        } else if (command.toLowerCase() === 'help') {
+            this._displayHelp(aurora);
+        }
+        // Handle case-sensitive setting updates
+        else if (validSettings.includes(command)) {
+            const newValue = args[1];
+            if (newValue === undefined) {
+                console.log(aurora.colorText(`Error: Missing value for setting '${command}'. Usage: firewall ${command} <value>`, aurora.tintRed));
+                return;
+            }
+            await this._updateSetting(Hexley, aurora, dbFramework, command, newValue);
+        }
+        // If no match, it's an unknown command
+        else {
+            console.log(aurora.colorText(`Error: Unknown command or setting '${command}'.`, aurora.tintRed));
+            this._displayHelp(aurora);
+        }
+    },
+
+    /**
+     * Displays the help information for the firewall command.
+     */
+    _displayHelp(aurora: any) {
+        console.log(aurora.colorText('Firewall Control Program (FCP)', '#FF6347'));
+        console.log("Provides an interface to the Firewall Framework.\n");
+        console.log("Usage: firewall [command]\n");
+        console.log("Commands:");
+        console.log("  status              | Displays a summary of firewall statistics (default).");
+        console.log("  list <type>         | Lists IP addresses. Type can be 'all', 'blacklisted', or 'whitelisted'.");
+        console.log("  <setting> <value>   | Updates a setting (e.g., 'isActive false').");
+        console.log("  help                | Shows this help message.");
+    },
+    
+    /**
+     * Updates a specific setting in the firewallConfigTable.
+     */
+    async _updateSetting(Hexley: any, aurora: any, dbFramework: any, setting: string, value: string) {
+        let validatedValue = value.toLowerCase();
+
+        // Validate input
+        if (setting === 'isActive' && !['true', 'false'].includes(validatedValue)) {
+            console.log(aurora.colorText(`Error: Invalid value for 'isActive'. Must be 'true' or 'false'.`, aurora.tintRed));
+            return;
+        }
+        if ((setting === 'blacklistTolerance' || setting === 'blacklistTimeout') && isNaN(parseInt(validatedValue, 10))) {
+            console.log(aurora.colorText(`Error: Invalid value for '${setting}'. Must be a number.`, aurora.tintRed));
+            return;
+        }
+
+        try {
+            await dbFramework.upsert({ options: { tableName: 'firewallConfigTable' } }, {
+                setting: setting,
+                value: validatedValue
+            });
+            console.log(aurora.colorText(`Successfully updated setting '${setting}' to '${validatedValue}'.`, aurora.tintGreen));
+        } catch (error: any) {
+            console.log(aurora.colorText(`Error updating setting: ${error.message}`, aurora.tintRed));
+        }
+    },
+
+    /**
+     * Shows the main status summary.
+     */
+    async _showStatus(Hexley: any, aurora: any, dbFramework: any) {
+        // Database Statistics
+        const allIps = await dbFramework.getAll('firewallMetIPsTable');
+        const firewallSettings = await dbFramework.getAll('firewallConfigTable');
+        const totalRequestsEntry = firewallSettings.find((s: any) => s.setting === 'totalRequestsFulfilled');
+        const totalRequests = totalRequestsEntry ? parseInt(totalRequestsEntry.value, 10) : 0;
+        const totalIPs = allIps.length;
+        const whitelistedIPs = allIps.filter((ip: any) => ip.isWhitelisted).length;
+        const blacklistedIPs = allIps.filter((ip: any) => ip.isBlacklisted).length;
+
+        // Ping Test
+        let pingTime = 'N/A';
+        let internalTime = 'N/A';
+        const protocol = process.env.ENABLE_HTTPS === 'TRUE' ? 'https' : 'http';
+        const hostname = 'hexley.carnations.dev';
+        const port = process.env.ENDPOINT_PORT || (protocol === 'https' ? '443' : '80');
+        const url = `${protocol}://${hostname}:${port}/`;
+
+        try {
+            const startTime = performance.now();
+            const response = await fetch(url);
+            const endTime = performance.now();
+            pingTime = `${(endTime - startTime).toFixed(2)} ms`;
+            internalTime = response.headers.get('X-Internal-Resolve-Time') || 'N/A';
+        } catch (error) {
+            pingTime = 'Failed to connect';
+        }
+        
+        const frameworkVersion = Hexley.versions.firewallFramework?.version || 'N/A';
+        console.log(aurora.colorText(`Firewall Framework ${frameworkVersion}`, '#FF6347'));
+        console.log('---------------------------------');
+        console.log(`Total Requests Fulfilled: ${aurora.colorText(totalRequests.toLocaleString(), '#B5FF70')}`);
+        console.log(`Total Unique IPs Seen:    ${aurora.colorText(totalIPs.toLocaleString(), '#B5FF70')}`);
+        console.log(`Whitelisted IPs:          ${aurora.colorText(whitelistedIPs.toLocaleString(), '#B5FF70')}`);
+        console.log(`Blacklisted IPs:          ${aurora.colorText(blacklistedIPs.toLocaleString(), '#B5FF70')}`);
+        console.log('---------------------------------');
+        console.log(aurora.colorText('Settings:', '#FF6347'));
+        firewallSettings.forEach((setting: any) => {
+            if (setting.setting !== 'totalRequestsFulfilled') {
+                console.log(`  - ${setting.setting}: ${aurora.colorText(setting.value, '#B5FF70')}`);
+            }
+        });
+        console.log('---------------------------------');
+        console.log(`Server Response Time:     ${aurora.colorText(pingTime, '#B5FF70')}`);
+        console.log(`Internal Resolve Time:    ${aurora.colorText(internalTime, '#B5FF70')}`);
+    },
+
+    /**
+     * Lists IPs based on the specified type.
+     */
+    async _listIps(Hexley: any, aurora: any, dbFramework: any, type: string) {
+        const allIps = await dbFramework.getAll('firewallMetIPsTable');
+        let filteredIps = [];
+
+        switch (type.toLowerCase()) {
+            case 'blacklisted':
+                filteredIps = allIps.filter((ip: any) => ip.isBlacklisted);
+                break;
+            case 'whitelisted':
+                filteredIps = allIps.filter((ip: any) => ip.isWhitelisted);
+                break;
+            case 'all':
+            default:
+                filteredIps = allIps;
+                break;
+        }
+
+        if (filteredIps.length === 0) {
+            console.log(`No IPs found for type '${type}'.`);
+            return;
+        }
+
+        console.log(aurora.colorText(`Displaying ${type} IPs:`, '#FF6347'));
+        console.table(filteredIps);
+    }
+    
+};

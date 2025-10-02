@@ -80,4 +80,19 @@ export interface DatabaseDriver {
      */
     reset(tableModel: any): Promise<void>;
     
+    /**
+     * Drops a table from the database.
+     * @param {any} tableModel - The model of the table to drop.
+     * @returns {Promise<void>} A promise that resolves when the table is dropped.
+     */
+    dropTable(tableModel: any): Promise<void>;
+
+    /**
+     * Creates bulk entries in the database. (Does NOT support Local mode.)
+     * Technically, it does. But not without explicit usage. For now.
+     * @param {string} tableName - The model of the table you are importing.
+     * @param {any} data - The data of all entries for the table.
+     */
+    bulkCreate(tableName: string, data: any[]): Promise<any[]>;
+    
 }

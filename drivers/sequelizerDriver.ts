@@ -1,8 +1,9 @@
 import { Sequelize } from 'sequelize';
 import type { DatabaseDriver } from './databaseDriver';
 
-// This will hold the active Sequelize instance for the driver to use.
+// This will hold the active Sequelize instance and the Hexley global object.
 let _sequelize: Sequelize | null = null;
+let _Hexley: any = null;
 
 /**
  * Internal helper to parse and validate a table model definition.
@@ -33,40 +34,47 @@ export const sequelizerDriver: DatabaseDriver = {
      * @returns {Promise<boolean>} A promise that resolves to true on success.
      */
     async initialize(Hexley: any): Promise<boolean> {
+        _Hexley = Hexley;
         const { DB_USER, DB_NAME, DB_PASS, DB_HOST, DB_PORT } = process.env;
 
         if (!DB_USER || !DB_NAME || !DB_PASS || !DB_HOST || !DB_PORT) {
-            Hexley.log('[sequelizerDriver] Fatal: One or more database environment variables are missing.');
+            if (_Hexley?.driverDebug) _Hexley.log('[sequelizerDriver] Fatal: One or more database environment variables are missing.');
             return false;
         }
 
+        const enableSqlLogging = _Hexley?.driverDebug;
+
         try {
+            if (_Hexley?.driverDebug) _Hexley.log(`[sequelizerDriver] Initializing connection to ${DB_NAME}...`);
             _sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASS, {
                 host: DB_HOST,
                 port: parseInt(DB_PORT, 10),
                 dialect: 'mysql',
-                logging: false,
+                logging: enableSqlLogging ? (msg) => _Hexley.log(`[sequelizerDriver/SQL] ${msg}`) : false,
             });
             await _sequelize.authenticate();
+            if (_Hexley?.driverDebug) _Hexley.log(`[sequelizerDriver] Connection successful.`);
+
 
             // Listen for versionFramework.ready and add the version to the database.
             Hexley.core.once('versionFramework.ready', async () => {
-                await Hexley.frameworks.version.addVersionEntry(Hexley, 'sequelizerDriver', 'Driver', '1.0.0');
+                await Hexley.frameworks.version.addVersionEntry(Hexley, 'sequelizerDriver', 'Driver', '1.0.1');
             });
 
             return true;
         } catch (error: any) {
             if (error.original && error.original.code === 'ER_BAD_DB_ERROR') {
 
-                Hexley.log(`[sequelizerDriver] Database "${DB_NAME}" not found. Attempting to create...`);
+                _Hexley.log(`[sequelizerDriver] Database "${DB_NAME}" not found. Attempting to create...`);
                 const tempSequelize = new Sequelize('', DB_USER, DB_PASS, { host: DB_HOST, port: parseInt(DB_PORT, 10), dialect: 'mysql', logging: false });
                 await tempSequelize.query(`CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\`;`);
                 _sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASS, { host: DB_HOST, port: parseInt(DB_PORT, 10), dialect: 'mysql', logging: false });
                 await _sequelize.authenticate();
-
+                if (_Hexley?.driverDebug) _Hexley.log(`[sequelizerDriver] Database created and connection successful.`);
                 return true;
+
             } else {
-                Hexley.log(`[sequelizerDriver] Fatal: Unable to connect to database "${DB_NAME}": ${error.message}`);
+                if (_Hexley?.driverDebug) _Hexley.log(`[sequelizerDriver] Fatal: Unable to connect to database "${DB_NAME}": ${error.message}`);
                 return false;
             }
         }
@@ -78,7 +86,9 @@ export const sequelizerDriver: DatabaseDriver = {
      */
     async getTables(): Promise<string[]> {
         if (!_sequelize) return [];
+        if (_Hexley?.driverDebug) _Hexley.log(`[sequelizerDriver/getTables] Fetching all table names...`);
         const tables = await _sequelize.getQueryInterface().showAllTables();
+        if (_Hexley?.driverDebug) _Hexley.log(`[sequelizerDriver/getTables] -> Found ${tables.length} tables.`);
         return tables;
     },
 
@@ -90,21 +100,28 @@ export const sequelizerDriver: DatabaseDriver = {
     async initTable(tableModel: any): Promise<any> {
         if (!_sequelize) return null;
         const { tableName, definition, options } = _parseDefinition(tableModel);
+        if (_Hexley?.driverDebug) _Hexley.log(`[sequelizerDriver/initTable] Initializing table: ${tableName}`);
         const model = _sequelize.define(tableName, definition, options);
         await model.sync();
+        if (_Hexley?.driverDebug) _Hexley.log(`[sequelizerDriver/initTable] -> Table '${tableName}' synced successfully.`);
         return model;
     },
     
     /**
      * Retrieves all entries from a given table.
-     * @param {any} tableModel - The model of the table to query.
+     * @param {any} tableIdentifier - The model of the table to query.
      * @returns {Promise<any[]>} A promise that resolves to an array of entries.
      */
-    async getAll(tableModel: any): Promise<any[]> {
+    async getAll(tableIdentifier: any): Promise<any[]> {
         if (!_sequelize) return [];
-        const model = _sequelize.models[tableModel.options.tableName];
+        const tableName = typeof tableIdentifier === 'string' 
+            ? tableIdentifier 
+            : tableIdentifier.options.tableName;
+        if (_Hexley?.driverDebug) _Hexley.log(`[sequelizerDriver/getAll] Request for table: '${tableName}'`);
+        const model = _sequelize.models[tableName];
         if (!model) return [];
         const entries = await model.findAll();
+        if (_Hexley?.driverDebug) _Hexley.log(`[sequelizerDriver/getAll] -> Found ${entries.length} entries.`);
         return entries.map((entry: any) => entry.toJSON());
     },
 
@@ -116,9 +133,13 @@ export const sequelizerDriver: DatabaseDriver = {
      */
     async get(tableModel: any, query: any): Promise<any | null> {
         if (!_sequelize) return null;
-        const model = _sequelize.models[tableModel.options.tableName];
+        const tableName = tableModel.options.tableName;
+        if (_Hexley?.driverDebug) _Hexley.log(`[sequelizerDriver/get] Request for table: '${tableName}' with query:`, query);
+        const model = _sequelize.models[tableName];
         if (!model) return null;
-        return await model.findOne(query);
+        const result = await model.findOne({ where: query });
+        if (_Hexley?.driverDebug) _Hexley.log(`[sequelizerDriver/get] -> ${result ? 'Found entry.' : 'Entry not found.'}`);
+        return result;
     },
 
     /**
@@ -130,11 +151,20 @@ export const sequelizerDriver: DatabaseDriver = {
      */
     async add(tableModel: any, entryObject: any, query: any): Promise<any | null> {
         if (!_sequelize) return null;
-        const model = _sequelize.models[tableModel.options.tableName];
+        const tableName = tableModel.options.tableName;
+        if (_Hexley?.driverDebug) _Hexley.log(`[sequelizerDriver/add] Request for table: '${tableName}'`);
+        const model = _sequelize.models[tableName];
         if (!model) return null;
-        const existingEntry = await model.findOne({ where: query });
-        if (existingEntry) return null;
-        return await model.create(entryObject);
+        if (query && Object.keys(query).length > 0) {
+            const existingEntry = await model.findOne({ where: query });
+            if (existingEntry) {
+                if (_Hexley?.driverDebug) _Hexley.log(`[sequelizerDriver/add] -> Entry already exists. Aborting.`);
+                return null;
+            }
+        }
+        const newEntry = await model.create(entryObject);
+        if (_Hexley?.driverDebug) _Hexley.log(`[sequelizerDriver/add] -> Successfully created new entry.`);
+        return newEntry;
     },
 
     /**
@@ -146,9 +176,12 @@ export const sequelizerDriver: DatabaseDriver = {
      */
     async update(tableModel: any, entryObject: any, query: any): Promise<any | null> {
         if (!_sequelize) return null;
-        const model = _sequelize.models[tableModel.options.tableName];
+        const tableName = tableModel.options.tableName;
+        if (_Hexley?.driverDebug) _Hexley.log(`[sequelizerDriver/update] Request for table: '${tableName}' with query:`, query);
+        const model = _sequelize.models[tableName];
         if (!model) return null;
         const [affectedRows] = await model.update(entryObject, { where: query });
+        if (_Hexley?.driverDebug) _Hexley.log(`[sequelizerDriver/update] -> Affected rows: ${affectedRows}`);
         return affectedRows > 0 ? entryObject : null;
     },
 
@@ -160,9 +193,12 @@ export const sequelizerDriver: DatabaseDriver = {
      */
     async upsert(tableModel: any, entryObject: any): Promise<any> {
         if (!_sequelize) return null;
-        const model = _sequelize.models[tableModel.options.tableName];
+        const tableName = tableModel.options.tableName;
+        if (_Hexley?.driverDebug) _Hexley.log(`[sequelizerDriver/upsert] Request for table: '${tableName}'`);
+        const model = _sequelize.models[tableName];
         if (!model) return null;
         const [instance, created] = await model.upsert(entryObject);
+        if (_Hexley?.driverDebug) _Hexley.log(`[sequelizerDriver/upsert] -> ${created ? 'Created new entry.' : 'Updated existing entry.'}`);
         return instance;
     },
 
@@ -174,9 +210,12 @@ export const sequelizerDriver: DatabaseDriver = {
      */
     async delete(tableModel: any, query: any): Promise<boolean> {
         if (!_sequelize) return false;
-        const model = _sequelize.models[tableModel.options.tableName];
+        const tableName = tableModel.options.tableName;
+        if (_Hexley?.driverDebug) _Hexley.log(`[sequelizerDriver/delete] Request for table: '${tableName}' with query:`, query);
+        const model = _sequelize.models[tableName];
         if (!model) return false;
         const result = await model.destroy({ where: query });
+        if (_Hexley?.driverDebug) _Hexley.log(`[sequelizerDriver/delete] -> Deleted ${result} row(s).`);
         return result > 0;
     },
 
@@ -187,8 +226,41 @@ export const sequelizerDriver: DatabaseDriver = {
      */
     async reset(tableModel: any): Promise<void> {
         if (!_sequelize) return;
-        const model = _sequelize.models[tableModel.options.tableName];
+        const tableName = tableModel.options.tableName;
+        if (_Hexley?.driverDebug) _Hexley.log(`[sequelizerDriver/reset] Request to reset table: '${tableName}'`);
+        const model = _sequelize.models[tableName];
         if (model) await model.truncate();
+        if (_Hexley?.driverDebug) _Hexley.log(`[sequelizerDriver/reset] -> Table '${tableName}' truncated.`);
+    },
+
+    /**
+     * Drops a table from the database.
+     * @param {any} tableModel - The model of the table to drop.
+     * @returns {Promise<void>} A promise that resolves when the table is dropped.
+     */
+    async dropTable(tableModel: any): Promise<void> {
+        if (!_sequelize) return;
+        const tableName = tableModel.options.tableName;
+        if (_Hexley?.driverDebug) _Hexley.log(`[sequelizerDriver/dropTable] Request to drop table: '${tableName}'`);
+        const model = _sequelize.models[tableName];
+        if (model) await model.drop();
+        if (_Hexley?.driverDebug) _Hexley.log(`[sequelizerDriver/dropTable] -> Table '${tableName}' dropped.`);
+    },
+
+    /**
+     * Sequentially inserts multiple records into a table using Sequelize's bulkCreate.
+     * @param {string} tableName - The name of the table/model.
+     * @param {any[]} data - The array of objects to insert.
+     * @returns {Promise<any[]>}
+     */
+    async bulkCreate(tableName: string, data: any[]): Promise<any[]> {
+        if (!_sequelize) return [];
+        if (_Hexley?.driverDebug) _Hexley.log(`[sequelizerDriver/bulkCreate] Request to bulk create in table: '${tableName}' with ${data.length} entries.`);
+        const model = _sequelize.models[tableName]; 
+        if (!model) {
+            throw new Error(`Sequelizer model not found for table: ${tableName}`);
+        }
+        return model.bulkCreate(data, { validate: true, ignoreDuplicates: true });
     },
 
 };

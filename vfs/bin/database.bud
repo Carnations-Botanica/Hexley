@@ -1,0 +1,301 @@
+
+/**
+ * The database command source code.
+ */
+export const database = {
+    description: 'Inspects and manages the loaded database backend.',
+    extendedDescription: 'Use `database list` to view tables, `database mode` to see the connection type, `database info <table_name>` to view table contents, `database dump` to convert Sequelizer data to Local mode, or `database import` to convert Local data to Sequelizer mode.',
+
+    /**
+     * Main entry point for the database command.
+     * @param {any} Hexley - The main Hexley global object, which provides access to all frameworks.
+     * @param {string[]} args - The arguments passed to the command.
+     */
+    async main(Hexley: any, args: string[]) {
+        const aurora = Hexley.frameworks.aurora;
+        const dbFramework = Hexley.frameworks.database;
+        if (!Hexley.databaseLoaded || !dbFramework) {
+            console.log(aurora.colorText('Error: The Database Framework is not loaded.', aurora.tintRed));
+            console.log(aurora.colorText('Ensure DATABASE_ENABLED=TRUE in your .env file.', aurora.tintYellow));
+            return;
+        }
+
+        const subcommand = args[0] ? args[0].toLowerCase() : 'help'; // Default to 'help'
+        const dbMode = Hexley.databaseMode;
+        const logCommand = (message: string) => {
+            console.log(aurora.colorText(`[database]`, aurora.tintIndigo) + ` ${message}`);
+        };
+
+        switch (subcommand) {
+            case 'list': {
+                const showContent = args[1] && args[1].toLowerCase() === 'show';
+
+                if (showContent) {
+                    logCommand(`Listing and showing all tables for mode: ${dbMode}...`);
+                    try {
+                        const tables = await dbFramework.getTables(); 
+                        if (tables && tables.length > 0) {
+                            logCommand(aurora.colorText(`Found ${tables.length} table(s):`, aurora.tintGreen));
+                            for (const tableName of tables) {
+                                logCommand(` - Table: ${tableName}`); 
+                                const tableData = await dbFramework.getAll(tableName);
+                                if (tableData && tableData.length > 0) {
+                                    console.table(tableData);
+                                } else {
+                                    console.log(`   (Table is empty)`);
+                                }
+                            }
+                        } else {
+                            logCommand(aurora.colorText(`No tables or collections found.`, aurora.tintYellow));
+                        }
+                    } catch (error: any) {
+                        logCommand(aurora.colorText(`Error fetching or showing tables: ${error.message}`, aurora.tintRed));
+                    }
+                } else {
+                    logCommand(`Listing all tables for mode: ${dbMode}...`);
+                    try {
+                        const tables = await dbFramework.getTables();
+                        if (tables && tables.length > 0) {
+                            logCommand(aurora.colorText(`Found ${tables.length} table(s):`, aurora.tintGreen));
+                            tables.forEach((tableName: string) => {
+                                console.log(` - ${tableName}`);
+                            });
+                        } else {
+                            logCommand(aurora.colorText(`No tables or collections found.`, aurora.tintYellow));
+                        }
+                    } catch (error: any) {
+                        logCommand(aurora.colorText(`Error listing tables: ${error.message}`, aurora.tintRed));
+                    }
+                }
+                break;
+            }
+
+            case 'reset': {
+                const tableName = args[1];
+                if (!tableName) {
+                    logCommand(aurora.colorText('Error: Missing table name. Usage: database reset <table_name>', aurora.tintRed));
+                    return;
+                }
+
+                logCommand(`Attempting to reset table: ${aurora.colorText(tableName, '#B5FF70')}...`);
+
+                try {
+                    await dbFramework.reset({ options: { tableName } });
+                    logCommand(aurora.colorText(`Successfully reset table '${tableName}'. All entries have been deleted.`, aurora.tintGreen));
+                } catch (error: any) {
+                    logCommand(aurora.colorText(`Error during reset operation for '${tableName}': ${error.message}`, aurora.tintRed));
+                }
+                break;
+            }
+
+            case 'mode': {
+                logCommand(`Current database mode is set to: ${aurora.colorText(dbMode, '#B5FF70')}`);
+                if (dbMode === 'Local') {
+                    logCommand(aurora.colorText(`Local DB file: ${Hexley.databaseLocalDir || '/var/db.json (default)'}`, aurora.tintGray)); 
+                } else if (dbMode === 'Sequelizer') {
+                    logCommand(aurora.colorText(`Connected via Sequelize (MySQL/MariaDB).`, aurora.tintGray));
+                }
+                break;
+            }
+
+            case 'info': {
+                const tableName = args[1];
+                if (!tableName) {
+                    logCommand(aurora.colorText('Error: Missing table name. Usage: database info <table_name>', aurora.tintRed));
+                    return;
+                }
+
+                logCommand(`Fetching info (table contents) for table: ${aurora.colorText(tableName, '#B5FF70')}...`);
+
+                try {
+                    const tableData = await dbFramework.getAll(tableName);
+                    
+                    if (tableData && tableData.length > 0) {
+                        console.table(tableData);
+                        logCommand(aurora.colorText(`Successfully retrieved ${tableData.length} entries.`, aurora.tintGreen));
+                    } else {
+                        logCommand(aurora.colorText(`Table '${tableName}' found, but it contains no entries.`, aurora.tintYellow));
+                    }
+                } catch (error: any) {
+                    logCommand(aurora.colorText(`Error fetching table info for '${tableName}': ${error.message}`, aurora.tintRed));
+                }
+                break;
+            }
+
+            case 'set': {
+                const [tableName, findKey, findValue, updateKey, updateValue] = args.slice(1);
+
+                if (!tableName || !findKey || !findValue || !updateKey || updateValue === undefined) {
+                    logCommand(aurora.colorText('Error: Missing arguments. Usage: database set <table_name> <find_key> <find_value> <update_key> <new_value>', aurora.tintRed));
+                    return;
+                }
+                
+                try {
+                    logCommand(`Attempting to update entry in ${aurora.colorText(tableName, '#B5FF70')}...`);
+                    const findQuery = { [findKey]: findValue };
+                    const entryToUpdate = await dbFramework.get({ options: { tableName } }, findQuery);
+
+                    if (!entryToUpdate) {
+                        logCommand(aurora.colorText(`Could not find an entry in '${tableName}' where ${findKey} matches '${findValue}'.`, aurora.tintYellow));
+                        return;
+                    }
+                    
+                    const updateObject = { [updateKey]: updateValue };
+                    const success = await dbFramework.update({ options: { tableName } }, updateObject, findQuery);
+
+                    if (success) {
+                        logCommand(aurora.colorText(`Successfully updated entry where ${findKey} = ${findValue}. Set ${updateKey} to ${updateValue}.`, aurora.tintGreen));
+                    } else {
+                        logCommand(aurora.colorText(`Update failed. The entry was found but could not be updated.`, aurora.tintRed));
+                    }
+                } catch (error: any) {
+                    logCommand(aurora.colorText(`Error during set operation: ${error.message}`, aurora.tintRed));
+                }
+                break;
+            }
+
+            case 'delete': {
+                const tableName = args[1];
+                const key = args[2];
+                const value = args[3];
+
+                if (!tableName || !key || !value) {
+                    logCommand(aurora.colorText('Error: Missing arguments. Usage: database delete <table_name> <key> <value>', aurora.tintRed));
+                    return;
+                }
+
+                logCommand(`Attempting to delete entry from ${aurora.colorText(tableName, '#B5FF70')} where ${key} = ${value}...`);
+
+                try {
+                    // Create the query object to find the specific entry to delete.
+                    const query = { [key]: value };
+                    const success = await dbFramework.delete({ options: { tableName } }, query);
+
+                    if (success) {
+                        logCommand(aurora.colorText(`Successfully deleted entry.`, aurora.tintGreen));
+                    } else {
+                        logCommand(aurora.colorText(`Could not find an entry in '${tableName}' where ${key} matches '${value}'.`, aurora.tintYellow));
+                    }
+                } catch (error: any) {
+                    logCommand(aurora.colorText(`Error during delete operation: ${error.message}`, aurora.tintRed));
+                }
+                break;
+            }
+            
+            case 'dump': {
+                // Enforce Sequelizer mode check
+                if (dbMode !== 'Sequelizer') {
+                    logCommand(aurora.colorText(`Error: Dump command is only available when DATABASE_MODE is set to 'Sequelizer'.`, aurora.tintRed));
+                    return;
+                }
+
+                logCommand(aurora.colorText('Starting full Sequelizer database dump to local file...', '#FFD700'));
+
+                try {
+                    const fsFramework = Hexley.frameworks.filesystem;
+                    const tables = await dbFramework.getTables(); 
+                    const allData: { [tableName: string]: any[] } = {};
+
+                    if (!tables || tables.length === 0) {
+                        logCommand(aurora.colorText(`No tables found in Sequelizer database. Dump aborted.`, aurora.tintYellow));
+                        return;
+                    }
+
+                    // Fetch all data for each table
+                    for (const tableName of tables) {
+                        logCommand(`Fetching data for table: ${aurora.colorText(tableName, '#B5FF70')}...`);
+                        allData[tableName] = await dbFramework.getAll(tableName);
+                    }
+
+                    // Prepare and write content to local file
+                    const jsonContent = JSON.stringify(allData, null, 2);
+                    const localFilePath = '/var/db.json';
+
+                    // The filesystem framework handles file writes
+                    const success = fsFramework.writeFile(Hexley, localFilePath, jsonContent);
+
+                    if (success) {
+                        logCommand(aurora.colorText(`Successfully dumped ${tables.length} tables to local file: ${localFilePath}`, aurora.tintGreen));
+                        console.log(aurora.colorText('Warning: You must change DATABASE_MODE to "Local" in .env and restart Hexley to use this data.', aurora.tintYellow));
+                    } else {
+                        logCommand(aurora.colorText(`Dump failed: Filesystem Framework could not write to ${localFilePath}.`, aurora.tintRed));
+                    }
+
+                } catch (error: any) {
+                    logCommand(aurora.colorText(`Critical Error during dump: ${error.message}`, aurora.tintRed));
+                }
+                break;
+            }
+            
+            // Import Local data to Sequelizer
+            case 'import': {
+                // Enforce Sequelizer mode check
+                if (dbMode !== 'Sequelizer') {
+                    logCommand(aurora.colorText(`Error: Import command is only available when DATABASE_MODE is set to 'Sequelizer'.`, aurora.tintRed));
+                    return;
+                }
+                
+                logCommand(aurora.colorText('Starting local file import to Sequelizer database...', '#FFD700'));
+                
+                try {
+                    const fsFramework = Hexley.frameworks.filesystem;
+                    const localFilePath = '/var/db.json';
+                    
+                    // 1. Read the local JSON file using the Filesystem Framework
+                    const jsonContent = fsFramework.readFile(Hexley, localFilePath);
+                    
+                    if (jsonContent === null || jsonContent === '') {
+                        logCommand(aurora.colorText(`Error: Local database file (${localFilePath}) is empty or inaccessible. Import aborted.`, aurora.tintRed));
+                        return;
+                    }
+                    
+                    const allData = JSON.parse(jsonContent);
+                    const tableNames = Object.keys(allData);
+                    let entriesImported = 0;
+                    
+                    if (tableNames.length === 0) {
+                        logCommand(aurora.colorText(`Local file found, but contains no tables. Import aborted.`, aurora.tintYellow));
+                        return;
+                    }
+
+                    // 2. Iterate and import data into Sequelizer
+                    for (const tableName of tableNames) {
+                        const tableData = allData[tableName];
+                        if (Array.isArray(tableData) && tableData.length > 0) {
+                            logCommand(`Importing ${tableData.length} entries into table: ${aurora.colorText(tableName, '#B5FF70')}...`);
+                            
+                            // Assuming the database framework has a transactional bulk import method
+                            // We use 'bulkCreate' which is standard Sequelize functionality
+                            const result = await dbFramework.bulkCreate(tableName, tableData);
+                            entriesImported += result.length;
+                        }
+                    }
+
+                    logCommand(aurora.colorText(`Successfully imported data from ${tableNames.length} tables. Total entries: ${entriesImported}`, aurora.tintGreen));
+                    console.log(aurora.colorText('Warning: Data was only imported. You can now safely keep DATABASE_MODE to "Sequelizer" and manually delete the local db.json file.', aurora.tintYellow));
+
+                } catch (error: any) {
+                    logCommand(aurora.colorText(`Critical Error during import: ${error.message}`, aurora.tintRed));
+                }
+                break;
+            }
+            
+            case 'help':
+            default: {
+                console.log(aurora.colorText('Database Command Usage:', aurora.tintRed));
+                console.log(`  database list - ${aurora.colorText('Shows the names of all available tables/collections.', aurora.tintGray)}`);
+                console.log(`  database list show - ${aurora.colorText('Shows all tables and their complete contents.', aurora.tintGray)}`);
+                console.log(`  database mode - ${aurora.colorText('Show the current database backend and status.', aurora.tintGray)}`);
+                console.log(`  database info <table_name> - ${aurora.colorText('Display all entries from a specified table.', aurora.tintGray)}`);
+                console.log(`  database reset <table_name> - ${aurora.colorText('Deletes all entries from a table without deleting the table.', aurora.tintRed)}`);
+                console.log(`  database delete <table_name> <key> <value> - ${aurora.colorText('Deletes an entry from a table where the key matches the value.', aurora.tintRed)}`);
+                console.log(`  database set <tbl> <find_key> <find_val> <upd_key> <upd_val> - ${aurora.colorText('Sets a specific value in an entry.', aurora.tintRed)}`);
+                console.log(`  database dump - ${aurora.colorText('Dumps the entire database to the local file for use in Local mode (Sequelizer only).', aurora.tintRed)}`);
+                console.log(`  database import - ${aurora.colorText('Reads local db.json and imports all data into the Sequelizer database (Sequelizer only).', aurora.tintRed)}`);
+                break;
+            }
+        }
+
+    }
+
+};
