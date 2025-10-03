@@ -22,10 +22,8 @@
     </dict>
     <key>Module Environment</key>
     <dict>
-      <key>MATHEMATICS_CHANNEL_ID</key>
+      <key>MATH_CHANNEL_ID</key>
       <string>1415909816550948934</string>
-      <key>STARTING_DIFFICULTY</key>
-      <string>easy</string>
     </dict>
     <key>Module Settings</key>
     <dict>
@@ -34,7 +32,7 @@
       <key>moduleEntryPoint</key>
       <string>mathematicsInit</string>
       <key>depsOn</key>
-      <string>discordFramework</string>
+      <string>discordFramework, databaseFramework, cooldownFramework</string>
       <key>hasPreviousInit</key>
       <true/>
       <key>debugMode</key>

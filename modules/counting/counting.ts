@@ -200,6 +200,18 @@ export const counting = {
         const content = message.content.trim();
         if (!/^\d+$/.test(content)) return;
 
+        // We do the same for checking and removing expired xp gain cooldowns here for cannot_particip
+        const expiredParticipateCooldown = await Hexley.frameworks.cooldown.findExpiredCooldown(Hexley, message.author.id, 'counting_cannot_particip');
+        if (expiredParticipateCooldown) {
+            await Hexley.frameworks.cooldown.clearCooldown(Hexley, message.author.id, 'counting_cannot_particip');
+            
+            const resetMessage = `Participation cooldown for **${message.member?.displayName}** has ended. You can count again!`;
+            const sentResetMsg = await Hexley.frameworks.discord.sendMessageToChannel(message.channel.id, resetMessage);
+            if (sentResetMsg) {
+                setTimeout(() => sentResetMsg.delete(), 5000); 
+            }
+        }
+
         // Check for 8-hour participation cooldown first and ignore if active
         const isParticipationCooledDown = await Hexley.frameworks.cooldown.checkCooldown(Hexley, message.author.id, 'counting_cannot_particip');
         if (isParticipationCooledDown) {
@@ -333,8 +345,8 @@ export const counting = {
             await Hexley.frameworks.database.upsert(countingUserStatsTable, { userId: message.author.id, channelId, count: finalCount, breaksCount: currentBreaksCount });
 
             if (finalCount === 10) {
-                // await Hexley.frameworks.cooldown.setCooldown(Hexley, message.author.id, 'counting_xp_gain', 3600); // 1 hour cooldown
-                await Hexley.frameworks.cooldown.setCooldown(Hexley, message.author.id, 'counting_xp_gain', 60); // 1 min cooldown
+                await Hexley.frameworks.cooldown.setCooldown(Hexley, message.author.id, 'counting_xp_gain', 3600); // 1 hour cooldown
+                // await Hexley.frameworks.cooldown.setCooldown(Hexley, message.author.id, 'counting_xp_gain', 60); // 1 min cooldown
                 const cooldownMessage = `**${message.member?.displayName}** has counted ${finalCount} times and is now on an hour XP gain cooldown!`;
                 
                 const sentCooldownMsg = await Hexley.frameworks.discord.sendMessageToChannel(channelId, cooldownMessage);
@@ -393,7 +405,7 @@ export const counting = {
 
         const embed = new EmbedBuilder()
             .setColor(Hexley.frameworks.discord.getUserRoleColor(interaction.member))
-            .setTitle('🔢 Counting Mini-game Stats')
+            .setTitle('Counting Mini-game Stats') // the emoji here and in firewall looked tacky
             .setDescription("Take turns counting up! The goal is to reach the highest number as a server without mistakes.")
             .addFields(
                 { name: 'Last Successful Counter', value: lastCounterName, inline: true },

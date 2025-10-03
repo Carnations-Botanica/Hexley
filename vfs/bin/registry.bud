@@ -1,0 +1,141 @@
+
+/**
+ * The registry command source code.
+ */
+export const registry = {
+    description: 'Interfaces with The Registry to list and inspect all loaded resources.',
+    extendedDescription: 'Usage: registry [list] | registry info <ResourceName>',
+
+    /**
+     * Helper to check if a resource is currently loaded/initialized (always true if it's in the registry).
+     * @param {any} Hexley - The main Hexley global object.
+     * @param {string} entryName - The name of the resource.
+     * @returns {boolean} True if loaded.
+     */
+    _isLoaded(Hexley: any, entryName: string): boolean {
+        // For simplicity, any resource present in the global registry is considered 'loaded' during runtime.
+        return true;
+    },
+
+    /**
+     * Displays details for a single registry entry.
+     * @param {any} Hexley - The main Hexley global object.
+     * @param {string} entryName - The name of the resource to display.
+     */
+    _displayInfo(Hexley: any, entryName: string) {
+        const { aurora, registry } = Hexley.frameworks;
+        const entry: any = registry.getEntryByName(entryName);
+        
+        if (!entry) {
+            console.log(aurora.colorText(`Error: Resource '${entryName}' not found in the registry.`, aurora.tintRed));
+            return;
+        }
+
+        const isLoaded = this._isLoaded(Hexley, entryName);
+        const statusColor = isLoaded ? aurora.tintGreen : aurora.tintRedBright;
+        // const statusText = isLoaded ? 'LOADED' : 'INACTIVE';
+        
+        console.log(aurora.colorText(`\nResource Details: ${entry.Name}`, aurora.tintRedBright));
+        console.log(aurora.colorText('-'.repeat(entry.Name.length + 18), aurora.tintGray));
+
+        // console.log(`Status: ${aurora.colorText(statusText, statusColor)}`);
+        console.log(`Resource Type: ${entry.Type}`);
+        console.log(`Identifier: ${entry.Identifier}`);
+        console.log(`Version: ${entry.Version}`);
+        console.log(`Entry Point: ${entry['Entry Point']}`);
+        console.log(`Description: ${entry.Description}`);
+        
+        // Output type-specific information
+        if (entry.Type === 'Framework' && entry['Framework Type']) {
+             console.log(`Framework Type: ${entry['Framework Type']}`);
+        } else if (entry.Type === 'Driver' && entry['Driver Type']) {
+             console.log(`Driver Type: ${entry['Driver Type']}`);
+        }
+        
+        console.log(`Main File: ${entry.Structure.Main}`);
+    },
+
+    /**
+     * Lists all loaded resources categorized by type.
+     * @param {any} Hexley - The main Hexley global object.
+     */
+    _listAll(Hexley: any) {
+        const { aurora, registry } = Hexley.frameworks;
+        const allEntries = registry.getAllEntries();
+
+        const categorized: { [key: string]: any[] } = {
+            'Kernel': [],
+            'Framework': [],
+            'Module': [],
+            'Driver': []
+        };
+        
+        allEntries.forEach((entry: { Type: string; }) => {
+            if (entry.Type) {
+                const type = entry.Type as ('Kernel' | 'Framework' | 'Module' | 'Driver');
+                if (categorized[type]) {
+                    categorized[type].push(entry);
+                }
+            }
+        });
+
+        console.log(aurora.colorText('\nListing all resources in the Registry:', aurora.tintRedBright));
+
+        const types = ['Kernel', 'Framework', 'Module', 'Driver'];
+        types.forEach(type => {
+            const list = categorized[type];
+            if (list.length > 0) {
+                // Use distinct colors for different resource types
+                const typeColor = type === 'Kernel' ? aurora.tintRedBright : 
+                                  type === 'Framework' ? aurora.tintRedBright : 
+                                  type === 'Module' ? aurora.tintRedBright : 
+                                  type === 'Driver' ? aurora.tintRedBright : aurora.tintGray;
+                                  
+                console.log(`\n${aurora.colorText(`${type}s (${list.length}):`, typeColor)}`);
+
+                list.forEach(entry => {
+                    const status = this._isLoaded(Hexley, entry.Name);
+                    // const statusText = status ? '(Loaded)' : '(Inactive)';
+                    
+                    // Display categorization detail (Private/Public for Framework/Driver)
+                    const typeDetail = entry['Framework Type'] || entry['Driver Type'] || '';
+                    const detail = typeDetail ? `(${typeDetail})` : '';
+
+                    console.log(`  ${entry.Name} - ${entry.Version} ${detail}`);
+                    console.log(`    - ${entry.Description}`);
+                });
+            }
+        });
+
+        console.log(``);
+    },
+
+    /**
+     * Main entry point for the registry command.
+     * @param {any} Hexley - The main Hexley global object.
+     * @param {string[]} args - The arguments passed to the command.
+     */
+    async main(Hexley: any, args: string[]) {
+        const { aurora } = Hexley.frameworks;
+
+        if (args.length === 0 || args[0] === 'list') {
+            this._listAll(Hexley);
+            return;
+        }
+
+        const subcommand = args[0];
+        
+        if (subcommand === 'info') {
+            const resourceName = args[1];
+            if (!resourceName) {
+                console.log(aurora.colorText('Error: Missing resource name for \'info\' subcommand.', aurora.tintRed));
+                return;
+            }
+            this._displayInfo(Hexley, resourceName);
+            return;
+        }
+
+        console.log(aurora.colorText(`Error: Unknown subcommand '${subcommand}'. Usage: registry [list] | registry info <ResourceName>`, aurora.tintRed));
+    }
+    
+};

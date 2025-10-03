@@ -47,8 +47,6 @@ export const versionFramework = {
             Hexley.log(`${Hexley.frameworks.aurora.colorText('[versionFramework]', Hexley.frameworks.aurora.tintYellow)} Database is not loaded. Versioning will be in-memory only.`);
         }
         
-        await this.addVersionEntry(Hexley, 'hexleyCore', 'Kernel', Hexley.versionNumber);
-
         Hexley.core.once('registryFramework.ready', () => {
             const plistPath = path.join(Hexley.privateFrameworksRootPath, 'versionFramework', 'info.plist');
             Hexley.frameworks.registry.addEntryByPlist(Hexley, plistPath);

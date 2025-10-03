@@ -9,7 +9,9 @@ export const cooldown = {
      */
     prettyNames: {
         'counting_xp_gain': 'Counting Mini-game XP Gain',
-        'counting_cannot_particip': 'Counting Participation Penalty'
+        'counting_cannot_particip': 'Counting Participation Penalty',
+        'math_xp_gain': 'Mathematics XP Gain',
+        'math_cannot_particip': 'Mathematics Participation Penalty'
     } as { [key: string]: string },
 
     /**

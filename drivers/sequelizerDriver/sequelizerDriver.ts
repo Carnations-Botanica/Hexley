@@ -1,5 +1,6 @@
+import path from 'path';
 import { Sequelize } from 'sequelize';
-import type { DatabaseDriver } from './databaseDriver';
+import type { DatabaseDriver } from '../databaseDriver/databaseDriver';
 
 // This will hold the active Sequelize instance and the Hexley global object.
 let _sequelize: Sequelize | null = null;
@@ -55,12 +56,6 @@ export const sequelizerDriver: DatabaseDriver = {
             await _sequelize.authenticate();
             if (_Hexley?.driverDebug) _Hexley.log(`[sequelizerDriver] Connection successful.`);
 
-
-            // Listen for versionFramework.ready and add the version to the database.
-            Hexley.core.once('versionFramework.ready', async () => {
-                await Hexley.frameworks.version.addVersionEntry(Hexley, 'sequelizerDriver', 'Driver', '1.0.1');
-            });
-
             return true;
         } catch (error: any) {
             if (error.original && error.original.code === 'ER_BAD_DB_ERROR') {
@@ -78,6 +73,7 @@ export const sequelizerDriver: DatabaseDriver = {
                 return false;
             }
         }
+
     },
 
     /**

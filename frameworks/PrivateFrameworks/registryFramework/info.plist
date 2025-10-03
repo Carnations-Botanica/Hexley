@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>Framework Type</key>
-	<string>Public</string>
+	<string>Private</string>
 	<key>Framework Entry</key>
 	<string>initializeRegistry</string>
 	<key>Framework Name</key>

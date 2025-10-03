@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import type { DatabaseDriver } from './databaseDriver';
+import type { DatabaseDriver } from '../databaseDriver/databaseDriver';
 
 // This will hold the in-memory representation of our JSON database.
 let _localDB: { [tableName: string]: any[] } = {};

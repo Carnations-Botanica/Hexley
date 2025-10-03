@@ -51,6 +51,19 @@ interface ModulePlist {
     'Module Command Arg Requirement'?: CommandArgRequirements;
 }
 
+interface DriverPlist {
+    'Driver Name': string;
+    'Driver Description': string;
+    'Driver Version': string;
+    'Driver Identifier': string;
+    'Driver Entry': string;
+    'Driver Type'?: 'Private' | 'Public';
+    'Driver Structure': {
+        Main: string;
+        [key: string]: string;
+    };
+}
+
 /**
  * The globally accessible framework for loading and unloading modules and frameworks.
  */
@@ -114,6 +127,10 @@ export const loaderFramework = {
             requestType = 'Module';
             Hexley.log(`${Hexley.frameworks.aurora.colorText('[loaderFramework/loadRequest]', this.loaderColor)} Received a load request for ${requestType}: "${requestName}"`);
             success = await this._handleModuleLoad(Hexley, plistPath, requestName);
+        } else if (plistPath.startsWith(Hexley.driversRootPath)) {
+            requestType = 'Driver';
+            Hexley.log(`${Hexley.frameworks.aurora.colorText('[loaderFramework/loadRequest]', this.loaderColor)} Received a load request for ${requestType}: "${requestName}"`);
+            success = await this._handleDriverLoad(Hexley, plistPath, requestName);
         } else {
             Hexley.log(`${Hexley.frameworks.aurora.colorText('[loaderFramework/loadRequest]', this.loaderColor)} Error: Could not determine type for resource at: ${plistPath}`);
         }
@@ -341,6 +358,67 @@ export const loaderFramework = {
             return true;
         } catch (error: any) {
             Hexley.log(`${Hexley.frameworks.aurora.colorText('[loaderFramework/_handleModuleLoad]', Hexley.frameworks.aurora.tintRed)} Error processing module load request for ${plistPath}: ${error.message}`);
+            return false;
+        }
+    },
+
+    async _handleDriverLoad(Hexley: any, plistPath: string, driverName: string): Promise<boolean> {
+        try {
+            const requestedDriverRootPath = path.dirname(plistPath);
+            const fileContent = fs.readFileSync(plistPath, 'utf8');
+            const parsedData = plist.parse(fileContent) as unknown as DriverPlist;
+            
+            // Construct entry object using Registry's EntryInfo interface
+            const entry: EntryInfo = {
+                'Name': parsedData['Driver Name'],
+                'Type': 'Driver',
+                'Driver Type': parsedData['Driver Type'],
+                'Description': parsedData['Driver Description'],
+                'Identifier': parsedData['Driver Identifier'],
+                'Version': parsedData['Driver Version'],
+                'Structure': parsedData['Driver Structure'],
+                'Entry Point': parsedData['Driver Entry']
+            };
+
+            // Register the driver with the registry
+            if (Hexley.registryLoaded) {
+                await Hexley.frameworks.registry.addToRegistry(Hexley, entry);
+            }
+
+            const mainFilePath = path.join(requestedDriverRootPath, entry.Structure.Main);
+            const entryObjectName = entry.Name;
+
+            if (entryObjectName) {
+                Hexley.log(`${Hexley.frameworks.aurora.colorText('[loaderFramework/_handleDriverLoad]', this.loaderColor)} Attempting to load driver "${entryObjectName}"...`);
+                const importedFile = await import(mainFilePath);
+                const driverObject = importedFile[entryObjectName];
+
+                if (driverObject) {
+                    // Drivers are stored in Hexley.drivers
+                    Hexley.drivers = Hexley.drivers || {};
+                    Hexley.drivers[entry.Name] = driverObject;
+                    Hexley.log(`${Hexley.frameworks.aurora.colorText('[loaderFramework/_handleDriverLoad]', this.loaderColor)} Successfully loaded driver object "${entry.Name}".`);
+
+                    // Recursive Sub-Driver Loading
+                    for (const key in entry.Structure) {
+                        if (key !== 'Main') {
+                            Hexley.log(`${Hexley.frameworks.aurora.colorText('[loaderFramework/_handleDriverLoad/subDriverLoad]', this.loaderLight)} Found sub-driver "${key}" for "${entry.Name}". Sending new load request...`);
+                            const relativePlistPath = entry.Structure[key];
+                            const subDriverPlistPath = path.join(requestedDriverRootPath, relativePlistPath!);
+                            await this.loadRequest(Hexley, subDriverPlistPath); // Recursive call
+                        }
+                    }
+                    
+                    return true;
+                } else {
+                    Hexley.log(`${Hexley.frameworks.aurora.colorText('[loaderFramework/_handleDriverLoad]', this.loaderColor)} Error: Could not find exported object "${entryObjectName}" in driver "${entry.Name}".`);
+                }
+            }
+
+            return false;
+        } catch (error: any) {
+            Hexley.log(`${Hexley.frameworks.aurora.colorText('[loaderFramework/_handleDriverLoad]', this.loaderColor)} Error processing driver load request for ${plistPath}:`);
+            console.error(error.message);
             return false;
         }
     },

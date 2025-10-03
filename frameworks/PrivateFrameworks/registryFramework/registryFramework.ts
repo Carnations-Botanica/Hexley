@@ -6,7 +6,9 @@ import path from 'path';
 export interface EntryInfo {
     // Common properties for both Modules and Frameworks
     'Name': string;
-    'Type'?: 'Module' | 'Framework';
+    'Type'?: 'Kernel' | 'Framework' | 'Module' | 'Driver';
+    'Framework Type'?: 'Private' | 'Public';
+    'Driver Type'?: string;
     'Description': string;
     'Identifier': string;
     'Entry Point': string;
@@ -35,11 +37,17 @@ export const registryFramework = {
     // Framework Logging Color
     registryColor: "#f9ff82",
 
+    // Module-scoped reference to the Hexley global object
+    _Hexley: null as any | null,
+
     /**
      * Initializes the Registry Framework.
      * @param {any} Hexley - The main Hexley global object.
      */
-    initializeRegistry(Hexley: any) {
+    async initializeRegistry(Hexley: any) {
+        // Cache the Hexley object for later use by non-argument functions
+        this._Hexley = Hexley;
+
         Hexley.log(`${Hexley.frameworks.aurora.colorText('[registryFramework/initializeRegistry]', this.registryColor)} Initializing...`);
         Hexley.registryLoaded = true;
 
@@ -59,25 +67,35 @@ export const registryFramework = {
      * @param {any} Hexley - The main Hexley global object.
      * @param {string} plistPath - The full path to the info.plist file.
      */
-    addEntryByPlist(Hexley: any, plistPath: string) {
+    async addEntryByPlist(Hexley: any, plistPath: string) {
         try {
+            const hexleyIndex = plistPath.indexOf('Hexley/');
+            const trimmedPath = hexleyIndex !== -1 ? plistPath.substring(hexleyIndex) : plistPath;
+            Hexley.log(`${Hexley.frameworks.aurora.colorText('[registryFramework/addEntryByPlist]', this.registryColor)} Attempting to parse plist at: ${trimmedPath}`);
+            
             const fileContent = fs.readFileSync(plistPath, 'utf8');
             const parsedData = plist.parse(fileContent) as any;
 
             let entryInfo: EntryInfo;
 
-            // Check if it's a Framework or a Module
+            // Check if it's a Framework
             if (parsedData['Framework Name']) {
+                Hexley.log(`${Hexley.frameworks.aurora.colorText('[registryFramework/addEntryByPlist]', this.registryColor)} Found Framework: ${parsedData['Framework Name']}`);
+                
                 entryInfo = {
                     'Name': parsedData['Framework Name'],
                     'Type': 'Framework',
+                    'Framework Type': parsedData['Framework Type'],
                     'Description': parsedData['Framework Description'],
                     'Identifier': parsedData['Framework Identifier'],
                     'Version': parsedData['Framework Version'],
                     'Structure': parsedData['Framework Structure'],
                     'Entry Point': parsedData['Framework Entry']
                 };
+            // Check if it's a Module
             } else if (parsedData['Module Name']) {
+                Hexley.log(`${Hexley.frameworks.aurora.colorText('[registryFramework/addEntryByPlist]', this.registryColor)} Found Module: ${parsedData['Module Name']}`);
+                
                 entryInfo = {
                     'Name': parsedData['Module Name'],
                     'Type': 'Module',
@@ -94,12 +112,39 @@ export const registryFramework = {
                     'Command Arg Descriptions': parsedData['Module Command Arg Descriptions'],
                     'Command Arg Requirement': parsedData['Module Command Arg Requirement']
                 };
+            // Check if it's a Driver
+            } else if (parsedData['Driver Name']) {
+                Hexley.log(`${Hexley.frameworks.aurora.colorText('[registryFramework/addEntryByPlist]', this.registryColor)} Found Driver: ${parsedData['Driver Name']}`);
+
+                entryInfo = {
+                    'Name': parsedData['Driver Name'],
+                    'Type': 'Driver',
+                    'Driver Type': parsedData['Driver Type'],
+                    'Description': parsedData['Driver Description'],
+                    'Identifier': parsedData['Driver Identifier'],
+                    'Entry Point': parsedData['Driver Entry'],
+                    'Version': parsedData['Driver Version'],
+                    'Structure': parsedData['Driver Structure']
+                };
+            // Check if it's a Kernel
+            } else if (parsedData['Kernel Name']) {
+                Hexley.log(`${Hexley.frameworks.aurora.colorText('[registryFramework/addEntryByPlist]', this.registryColor)} Found Kernel: ${parsedData['Kernel Name']}`);
+
+                entryInfo = {
+                    'Name': parsedData['Kernel Name'],
+                    'Type': 'Kernel',
+                    'Description': parsedData['Kernel Description'],
+                    'Identifier': parsedData['Kernel Identifier'],
+                    'Entry Point': parsedData['Kernel Entry'],
+                    'Version': parsedData['Kernel Version'],
+                    'Structure': parsedData['Kernel Structure']
+                };
             } else {
                 Hexley.log(`${Hexley.frameworks.aurora.colorText('[registryFramework/addEntryByPlist]', this.registryColor)} Error: Invalid plist file provided.`);
                 return;
             }
 
-            this.addToRegistry(Hexley, entryInfo);
+            await this.addToRegistry(Hexley, entryInfo);
 
         } catch (error: any) {
             Hexley.log(`${Hexley.frameworks.aurora.colorText('[registryFramework/addEntryByPlist]', this.registryColor)} Error processing plist file: ${error.message}`);
@@ -128,6 +173,12 @@ export const registryFramework = {
         if (Hexley.debugMode) {
             Hexley.log(`${Hexley.frameworks.aurora.colorText('[registryFramework/addToRegistry]', this.registryColor)}   - Identifier: ${entryInfo['Identifier']}`);
             Hexley.log(`${Hexley.frameworks.aurora.colorText('[registryFramework/addToRegistry]', this.registryColor)}   - Version: ${entryInfo['Version']}`);
+            if (entryInfo.Type === 'Framework') {
+                Hexley.log(`${Hexley.frameworks.aurora.colorText('[registryFramework/addToRegistry]', this.registryColor)}   - Framework Type: ${entryInfo['Framework Type']}`);
+            }
+            if (entryInfo.Type === 'Driver') {
+                Hexley.log(`${Hexley.frameworks.aurora.colorText('[registryFramework/addToRegistry]', this.registryColor)}   - Driver Type: ${entryInfo['Driver Type']}`);
+            }
         }
 
     },
@@ -138,6 +189,8 @@ export const registryFramework = {
      * @param {string} entryName - The name of the resource to remove.
      */
     removeFromRegistry(Hexley: any, entryName: string) {
+        Hexley.log(`${Hexley.frameworks.aurora.colorText('[registryFramework/removeFromRegistry]', this.registryColor)} Attempting to remove entry: ${entryName}`);
+        
         const index = this.globalRegistryBuffer.findIndex(entry => entry['Name'] === entryName);
         if (index !== -1) {
             this.globalRegistryBuffer.splice(index, 1);
@@ -161,7 +214,21 @@ export const registryFramework = {
      * @returns {EntryInfo | undefined} The entry info object, or undefined if not found.
      */
     getEntryByName(entryName: string): EntryInfo | undefined {
-        return this.globalRegistryBuffer.find(entry => entry['Name'] === entryName);
+        const H = this._Hexley;
+        if (H && H.debugMode) {
+             H.log(`${H.frameworks.aurora.colorText('[registryFramework/getEntryByName]', this.registryColor)} Searching for entry: ${entryName}`);
+        }
+
+        const found = this.globalRegistryBuffer.find(entry => entry['Name'] === entryName);
+        if (H && H.debugMode) {
+            if (found) {
+                H.log(`${H.frameworks.aurora.colorText('[registryFramework/getEntryByName]', this.registryColor)} Found entry: ${entryName}`);
+            } else {
+                 H.log(`${H.frameworks.aurora.colorText('[registryFramework/getEntryByName]', this.registryColor)} Entry not found: ${entryName}`);
+            }
+        }
+
+        return found;
     },
 
     /**
@@ -188,4 +255,28 @@ export const registryFramework = {
         return this.globalRegistryBuffer.filter(entry => entry.Type === 'Framework').length;
     },
     
+    /**
+     * Gets the current count of drivers in the registry.
+     * @returns {number} The number of registered drivers.
+     */
+    getDriversCount(): number {
+        return this.globalRegistryBuffer.filter(entry => entry.Type === 'Driver').length;
+    },
+
+    /**
+     * Gets the current count of private drivers in the registry.
+     * @returns {number} The number of registered private drivers.
+     */
+    getPrivateDriversCount(): number {
+        return this.globalRegistryBuffer.filter(entry => entry.Type === 'Driver' && entry['Driver Type'] === 'Private').length;
+    },
+
+    /**
+     * Gets the current count of public drivers in the registry.
+     * @returns {number} The number of registered public drivers.
+     */
+    getPublicDriversCount(): number {
+        return this.globalRegistryBuffer.filter(entry => entry.Type === 'Driver' && entry['Driver Type'] === 'Public').length;
+    },
+
 };

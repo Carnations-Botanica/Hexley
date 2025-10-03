@@ -180,12 +180,13 @@ export const Hexley = {
     hexShellLoad: true,
     hexShellLoaded: false,
     hideLogInShell: false,
-    driverDebug: false,
+    driverDebug: false, // supposed to be only for internal users
     architecture: "",
     platform: "",
     buildType: "",
     frameworksLoadedCount: 0,
     modulesLoadedCount: 0,
+    driversLoadedCount: 0,
     cpuThreadPanic: 0,
     timeSinceBoot: "",
     cpuCallerHex: "",
@@ -193,13 +194,12 @@ export const Hexley = {
     username: "",
     rootUUID: "",
     kernelString: "",
-    versionNumber: "3.0.0",
     debugMode: false,
     core: new EventEmitter(),
     sequelize: null as any,
     database: {} as { [key: string]: any },
     versions: { 
-        'hexleyCore': { version: '0.0.0', type: 'Kernel' } 
+        'hexleyCore': { version: '3.0.0', type: 'Kernel' } // Set the base kernel version, updates later by plist 
     } as { [key: string]: VersionInfo },
     vfsStructure: {},
 
@@ -218,17 +218,19 @@ export const Hexley = {
 
     // Paths
     workingDir: process.cwd(),
-    modulesRootPath: '',
+    kernelsRootPath: '',
     frameworksRootPath: '',
     privateFrameworksRootPath: '',
     publicFrameworksRootPath: '',
+    modulesRootPath: '',
+    driversRootPath: '',
     filesystemRootDir: '',
     filesystemUserDir: '',
     filesystemCWDir: '',
     sessionLogFile: '',
     databaseLocalDir: '',
 
-    // Containers for loaded resources
+    // Access to loaded resources
     frameworks: {
         aurora: dummyAuroraFramework,
         filesystem: null as any,
@@ -237,12 +239,12 @@ export const Hexley = {
         registry: null as any,
         loader: null as any,
         discord: null as any,
-    } as { [key: string]: any }, // Cast the object to a type that allows any string key
-
+    } as { [key: string]: any },
     modules: {
         hexShell: null as any,
-    } as { [key: string]: any }, // Cast the object to a type that allows any string key
-
+    } as { [key: string]: any },
+    drivers: {
+    } as { [key: string]: any },
 };
 
 // Early Boot Process
@@ -306,9 +308,9 @@ Hexley.kernelString = getKernelBuildString();
 if (Hexley.debugMode) {
     log(`[hexleyCore/Dbg] Hexley.kernelString is: ${Hexley.kernelString}`);
 }
-Hexley.modulesRootPath = path.join(Hexley.workingDir, "modules/");
+Hexley.kernelsRootPath = path.join(Hexley.workingDir, "kernels/");
 if (Hexley.debugMode) {
-    log(`[hexleyCore/Dbg] Hexley.modulesRootPath is: ${Hexley.modulesRootPath}`);
+    log(`[hexleyCore/Dbg] Hexley.kernelsRootPath is: ${Hexley.kernelsRootPath}`);
 }
 Hexley.frameworksRootPath = path.join(Hexley.workingDir, "frameworks/");
 if (Hexley.debugMode) {
@@ -322,9 +324,22 @@ Hexley.publicFrameworksRootPath = path.join(Hexley.frameworksRootPath, "PublicFr
 if (Hexley.debugMode) {
     log(`[hexleyCore/Dbg] Hexley.publicFrameworksRootPath is: ${Hexley.publicFrameworksRootPath}`);
 }
+Hexley.modulesRootPath = path.join(Hexley.workingDir, "modules/");
+if (Hexley.debugMode) {
+    log(`[hexleyCore/Dbg] Hexley.modulesRootPath is: ${Hexley.modulesRootPath}`);
+}
+Hexley.driversRootPath = path.join(Hexley.workingDir, "drivers/");
+if (Hexley.debugMode) {
+    log(`[hexleyCore/Dbg] Hexley.driversRootPath is: ${Hexley.driversRootPath}`);
+}
+Hexley.core.once('registryFramework.ready', () => {
+    const plistPath = path.join(Hexley.kernelsRootPath, 'hexleyCore', 'info.plist');
+    Hexley.frameworks.registry.addEntryByPlist(Hexley, plistPath);
+});
 
 // Automatic Internal & 3rd Party Resource Initialization Map
 // Defines scopes and reserved resources only to be init by hexleyCore
+// While defining which folders to scan and load automatically.
 const resourcesToScan = [
     {
         name: 'Private Frameworks',
@@ -343,13 +358,22 @@ const resourcesToScan = [
         path: Hexley.modulesRootPath,
         ignoreList: ['hexShell', '.DS_Store'],
         counter: 'modulesLoadedCount'
-    }
+    },
+    {
+        name: 'Drivers',
+        path: Hexley.driversRootPath,
+        ignoreList: ['databaseDriver', 'sequelizerDriver', 'localDriver', '.DS_Store'],
+        counter: 'driversLoadedCount'
+    },
 ];
 
+log(`initializing mass storage`);
+log(`trying system partition mount from device /dev/nvme`);
+log(`mount successful`);
 log(`root device uuid is: ${generateRootUUID()}`);
 log(`[hexleyCore] ${Hexley.kernelString}`);
 printCopyright();
-log(`Framework hexleyCore successfully initialized`);
+log(`Kernel hexleyCore successfully initialized`);
 
 // Filesystem Framework Initialization Logic
 log(`${Hexley.frameworks.aurora.colorText('[hexleyCore]', Hexley.frameworks.aurora.tintGray)} Loading Filesystem framework...`);
@@ -382,7 +406,10 @@ if (Hexley.databaseLoad && Hexley.debugMode) {
         if (Hexley.databaseMode === 'Sequelizer') {
             log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   - Mode: Sequelizer`);
             if (tables.length > 0) {
-                log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   - Tables: [${tables.join(', ')}]`);
+                log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   - Tables:`);
+                tables.forEach((table: any) => {
+                    log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}     - ${table}`);
+                });
             } else {
                 log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   - No tables found in the database.`);
             }
@@ -390,7 +417,10 @@ if (Hexley.databaseLoad && Hexley.debugMode) {
             log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   - Mode: Local`);
             log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   - File: ${Hexley.databaseLocalDir}`);
             if (tables.length > 0) {
-                log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   - Tables: [${tables.join(', ')}]`);
+                log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   - Tables:`);
+                tables.forEach((table: any) => {
+                    log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}     - ${table}`);
+                });
             } else {
                 log(`${Hexley.frameworks.aurora.colorText('[hexleyCore/Dbg]', Hexley.frameworks.aurora.tintGray)}   - No tables found in the local database file.`);
             }
@@ -565,7 +595,7 @@ for (const resourceType of resourcesToScan) {
 // Final Debug Block
 let wantDumpDebugBlock = false;
 if (Hexley.buildType === "INTERNAL") {
-    wantDumpDebugBlock = true;
+    wantDumpDebugBlock = false;
 }
 
 // Final Debug Block

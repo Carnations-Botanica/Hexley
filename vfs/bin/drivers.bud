@@ -1,0 +1,109 @@
+
+/**
+ * The drivers command source code.
+ */
+export const drivers = {
+    description: 'Lists and provides details for all currently loaded hardware drivers.',
+    extendedDescription: 'Usage: drivers [info <DriverName>]\n\nLists all active drivers or provides detailed information on a specific driver.',
+
+    /**
+     * Helper to check if a driver is currently loaded/initialized.
+     * In the database framework, this means the object exists.
+     */
+    _isDriverLoaded(Hexley: any, driverName: string): boolean {
+        // The core database framework holds a reference to the active driver object (e.g., _activeDriver).
+        // Since this command is generic for all drivers, we check the global frameworks object.
+        // For database drivers, this check is simplistic but serves the UI need.
+        const dbMode = Hexley.databaseMode.toLowerCase();
+        const activeDriverName = `${dbMode}Driver`;
+
+        return driverName === activeDriverName;
+    },
+
+    /**
+     * Displays a list of all loaded drivers in the modprobe/frameworks style.
+     * @param {any} Hexley - The main Hexley global object.
+     * @param {any[]} driverEntries - Filtered list of Driver entries.
+     */
+    _listDrivers(Hexley: any, driverEntries: any[]) {
+        const { aurora } = Hexley.frameworks;
+        
+        console.log(`\nListing all ${driverEntries.length} driver/s on the system:`);
+        
+        driverEntries.forEach(entry => {
+            const isLoaded = this._isDriverLoaded(Hexley, entry.Name);
+            const statusColor = isLoaded ? aurora.tintGreen : aurora.tintYellow;
+            const statusText = isLoaded ? '(Active)' : '(Inactive)';
+            
+            // Intended format: Name - Version (Category) (Status)
+            console.log(aurora.colorText(
+                `${entry.Name} - ${entry.Version} (${entry['Driver Type']})`,
+                isLoaded ? aurora.tintGreen : aurora.tintRedBright
+            ) + aurora.colorText(` ${statusText}`, statusColor));
+            
+            // Output description
+            console.log(aurora.colorText(`  - ${entry.Description}`, aurora.tintGray));
+        });
+    },
+
+    /**
+     * Displays detailed information for a single driver.
+     * @param {any} Hexley - The main Hexley global object.
+     * @param {any} entry - The specific Driver entry object.
+     */
+    _displayDriverInfo(Hexley: any, entry: any) {
+        const { aurora } = Hexley.frameworks;
+        const isLoaded = this._isDriverLoaded(Hexley, entry.Name);
+        const statusColor = isLoaded ? aurora.tintGreen : aurora.tintRedBright;
+        const statusText = isLoaded ? 'ACTIVE' : 'INACTIVE';
+        
+        console.log(aurora.colorText(`\nDriver Details: ${entry.Name}`, aurora.tintRedBright));
+        console.log(aurora.colorText('-'.repeat(entry.Name.length + 16), aurora.tintGray));
+
+        console.log(`Status: ${aurora.colorText(statusText, statusColor)}`);
+        console.log(`Identifier: ${entry.Identifier}`);
+        console.log(`Version: ${entry.Version}`);
+        console.log(`Type: ${entry['Driver Type']} Driver (${entry['Driver Type']})`);
+        console.log(`Description: ${entry.Description}`);
+        console.log(`Entry Point: ${entry['Entry Point']}`);
+        console.log(`Main File: ${entry.Structure.Main}`);
+    },
+
+    /**
+     * Main entry point for the drivers command.
+     * @param {any} Hexley - The main Hexley global object.
+     * @param {string[]} args - The arguments passed to the command.
+     */
+    async main(Hexley: any, args: string[]) {
+        const { aurora, registry } = Hexley.frameworks;
+        const driverEntries = registry.getAllEntries().filter((entry: any) => entry.Type === 'Driver');
+
+        if (args.length === 0) {
+            // Default action: List all drivers
+            this._listDrivers(Hexley, driverEntries);
+            return;
+        }
+
+        const subcommand = args[0];
+        
+        if (subcommand === 'info') {
+            const driverName = args[1];
+            if (!driverName) {
+                console.log(aurora.colorText('Error: Missing driver name for \'info\' subcommand.', aurora.tintRed));
+                return;
+            }
+            
+            const targetEntry = driverEntries.find((entry: any) => entry.Name === driverName);
+            
+            if (targetEntry) {
+                this._displayDriverInfo(Hexley, targetEntry);
+            } else {
+                console.log(aurora.colorText(`Error: Driver '${driverName}' not found in the registry.`, aurora.tintRed));
+            }
+            return;
+        }
+
+        // Catch-all for unknown subcommands
+        console.log(aurora.colorText(`Error: Unknown subcommand '${subcommand}'. Usage: drivers [info <DriverName>]`, aurora.tintRed));
+    }
+};

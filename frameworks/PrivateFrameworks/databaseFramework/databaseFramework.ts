@@ -1,5 +1,5 @@
 import path from 'path';
-import type { DatabaseDriver } from '../../../drivers/databaseDriver';
+import type { DatabaseDriver } from '../../../drivers/databaseDriver/databaseDriver';
 
 /**
  * The globally accessible framework for managing Hexley's database connection.
@@ -27,7 +27,9 @@ export const databaseFramework = {
             // Dynamically import the correct driver based on the mode.
             const mode = Hexley.databaseMode;
             this.mode = mode;
-            const driverPath = path.join(Hexley.workingDir, 'drivers', `${mode.toLowerCase()}Driver.ts`);
+            const baseDriverPlistPath = path.join(Hexley.workingDir, 'drivers', `databaseDriver`, `info.plist`);
+            const driverPath = path.join(Hexley.workingDir, 'drivers', `${mode.toLowerCase()}Driver`, `${mode.toLowerCase()}Driver.ts`);
+            const driverPlistPath = path.join(Hexley.workingDir, 'drivers', `${mode.toLowerCase()}Driver`, `info.plist`);
             const driverModule = await import(driverPath);
             this._activeDriver = driverModule[`${mode.toLowerCase()}Driver`];
 
@@ -46,6 +48,8 @@ export const databaseFramework = {
             Hexley.core.once('registryFramework.ready', () => {
                 const plistPath = path.join(Hexley.privateFrameworksRootPath, 'databaseFramework', 'info.plist');
                 Hexley.frameworks.registry.addEntryByPlist(Hexley, plistPath);
+                Hexley.frameworks.registry.addEntryByPlist(Hexley, baseDriverPlistPath);
+                Hexley.frameworks.registry.addEntryByPlist(Hexley, driverPlistPath);
             });
 
             Hexley.databaseLoaded = true;
