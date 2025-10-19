@@ -115,23 +115,10 @@ export const Hexley = {
             loader: { wantLoad: true, isLoaded: false } as coreFrameworkStatus,
             registry: { wantLoad: true, isLoaded: false } as coreFrameworkStatus,
             version: { wantLoad: true, isLoaded: false } as coreFrameworkStatus,
-
-            // Public Frameworks can be here as well, to disable or enable them
-            cooldown: { wantLoad: true, isLoaded: false} as coreFrameworkStatus,
-            discord: { wantLoad: true, isLoaded: false} as coreFrameworkStatus,
-            experience: { wantLoad: true, isLoaded: false} as coreFrameworkStatus,
         },
 
         module: {
-            cooldown: { wantLoad: true, isLoaded: false } as coreModuleStatus,
-            counting: { wantLoad: true, isLoaded: false } as coreModuleStatus,
-            firewall: { wantLoad: true, isLoaded: false } as coreModuleStatus,
             hexShell: { wantLoad: false, isLoaded: false } as coreModuleStatus,
-            mathematics: { wantLoad: true, isLoaded: false } as coreModuleStatus,
-            twitch: { wantLoad: true, isLoaded: false } as coreModuleStatus,
-            verbose: { wantLoad: true, isLoaded: false } as coreModuleStatus,
-            version: { wantLoad: true, isLoaded: false } as coreModuleStatus,
-            xp: { wantLoad: true, isLoaded: false } as coreModuleStatus,
         },
 
         driver: {
