@@ -12,6 +12,10 @@
 	<string>The Example Framework for debugging Loader!</string>
 	<key>Framework Version</key>
 	<string>1.0.0</string>
+	<key>Framework Bin Support</key>
+	<true/>
+	<key>Framework Dependencies</key>
+	<string>filesystemFramework</string>
 	<key>Framework Identifier</key>
 	<string>hex.carnations.exampleFramework</string>
 	<key>Framework Structure</key>

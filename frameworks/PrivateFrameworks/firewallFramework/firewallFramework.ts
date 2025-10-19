@@ -80,21 +80,14 @@ export const firewallFramework = {
     async initializeFirewall(Hexley: any) {
         Hexley.log(`${Hexley.frameworks.aurora.colorText('[firewallFramework]', this.frameworkColor)} Initializing...`);
         
-        if (Hexley.databaseLoaded) {
+        if (Hexley.resources.framework.database.isLoaded) {
             await Hexley.frameworks.database.initTable(firewallConfigTable);
             await Hexley.frameworks.database.initTable(firewallMetIPsTable);
-
             await this._seedDefaultSettings(Hexley);
-
-            Hexley.core.once('registryFramework.ready', () => {
-                const plistPath = path.join(Hexley.privateFrameworksRootPath, 'firewallFramework', 'info.plist');
-                Hexley.frameworks.registry.addEntryByPlist(Hexley, plistPath);
-            });
-
-            Hexley.firewallLoaded = true;
-            Hexley.log(`${Hexley.frameworks.aurora.colorText('[firewallFramework]', this.frameworkColor)} Initialized!`);
+            Hexley.resources.framework.firewall.isLoaded = true;
+            Hexley.log(`${Hexley.frameworks.aurora.colorText('[firewallFramework]', this.frameworkColor)} Initialized! Resources updated with ${Hexley.resources.framework.firewall.isLoaded} for isLoaded.`);
         } else {
-            Hexley.log(`${Hexley.frameworks.aurora.colorText('[firewallFramework]', Hexley.frameworks.aurora.tintYellow)} Database is not loaded. Firewall will be unavailable.`);
+            Hexley.log(`${Hexley.frameworks.aurora.colorText('[firewallFramework]', this.frameworkColor)} Database is not loaded. Firewall will be unavailable.`);
         }
     },
 
@@ -115,6 +108,8 @@ export const firewallFramework = {
             if (!existing) {
                 await Hexley.frameworks.database.upsert({ options: { tableName: 'firewallConfigTable' } }, s);
                 Hexley.log(`${Hexley.frameworks.aurora.colorText('[firewallFramework]', this.frameworkColor)} Seeded default setting: ${s.setting} = ${s.value}`);
+            } else {
+                Hexley.log(`${Hexley.frameworks.aurora.colorText('[firewallFramework]', this.frameworkColor)} Setting ${s.setting} with value ${s.value} already exists.`)
             }
         }
     },
@@ -124,7 +119,7 @@ export const firewallFramework = {
      * @param {any} Hexley - The main Hexley global object.
      */
     async incrementTotalRequests(Hexley: any) {
-        if (!Hexley.databaseLoaded) return;
+        if (!Hexley.resources.framework.database.isLoaded) return;
 
         const counter = await Hexley.frameworks.database.get({ options: { tableName: 'firewallConfigTable' } }, { setting: 'totalRequestsFulfilled' });
         
@@ -144,7 +139,7 @@ export const firewallFramework = {
      * @returns {Promise<boolean>} A promise that resolves to true if the request is allowed, false otherwise.
      */
     async inspectAddress(Hexley: any, ipAddress: string, pathRequested: string): Promise<boolean> {
-        if (!Hexley.databaseLoaded) return true;
+        if (!Hexley.resources.framework.database.isLoaded) return true;
 
         const settingsArray = await Hexley.frameworks.database.getAll('firewallConfigTable');
         const settings = settingsArray.reduce((acc: any, curr: any) => {
@@ -159,6 +154,35 @@ export const firewallFramework = {
         const ipInfoResult = await Hexley.frameworks.database.get({ options: { tableName: 'firewallMetIPsTable' } }, { ipAddress });
         const now = new Date();
 
+        // Malicious Path Check - Trying to view any of these will automatically blacklist you.
+        const MALICIOUS_PATTERNS = [
+            '.php', 
+            '/admin/', 
+            '/owa/', 
+            '/.git/',
+            'config.js',
+            'config.php',
+            'login',
+            '/tr/',
+            'chs/js/'
+        ];
+        
+        const isMaliciousPath = MALICIOUS_PATTERNS.some(pattern => pathRequested.includes(pattern));
+
+        if (isMaliciousPath) {
+            const ipInfo = ipInfoResult?.get ? ipInfoResult.get({ plain: true }) : (ipInfoResult || { ipAddress, contactCount: 1, firstSeen: now });
+            
+            ipInfo.isBlacklisted = true;
+            ipInfo.lastSeen = now;
+            ipInfo.lastPathRequested = pathRequested;
+            ipInfo.contactCount = ipInfo.contactCount || 1; 
+
+            Hexley.log(`${Hexley.frameworks.aurora.colorText('[firewallFramework]', this.frameworkColor)} INSTANT DENIAL: Blacklisting IP ${ipAddress} (Path: ${pathRequested})`);
+            
+            await Hexley.frameworks.database.upsert({ options: { tableName: 'firewallMetIPsTable' } }, ipInfo);
+            return false;
+        }
+
         if (ipInfoResult) {
             // Convert the Sequelize instance to a plain object to ensure modifications are safe.
             const ipInfo = ipInfoResult.get ? ipInfoResult.get({ plain: true }) : ipInfoResult;
@@ -167,19 +191,25 @@ export const firewallFramework = {
                 Hexley.log(`${Hexley.frameworks.aurora.colorText('[firewallFramework]', this.frameworkColor)} Denied connection from already blacklisted IP: ${ipAddress}`);
                 return false;
             }
-            if (ipInfo.isWhitelisted) return true;
+            if (ipInfo.isWhitelisted) {
+                Hexley.log(`${Hexley.frameworks.aurora.colorText('[firewallFramework]', this.frameworkColor)} ALLOWED: Whitelisted IP ${ipAddress}`);
+                return true;
+            }
 
             const timeoutMinutes = parseInt(settings.blacklistTimeout, 10);
             const tolerance = parseInt(settings.blacklistTolerance, 10);
             
             const firstSeenTime = new Date(ipInfo.firstSeen);
             const minutesSinceFirstContact = (now.getTime() - firstSeenTime.getTime()) / (1000 * 60);
+            const previousContactCount = ipInfo.contactCount;
 
             if (minutesSinceFirstContact > timeoutMinutes) {
                 ipInfo.contactCount = 1;
                 ipInfo.firstSeen = now;
+                Hexley.log(`${Hexley.frameworks.aurora.colorText('[firewallFramework]', this.frameworkColor)} RESET: IP ${ipAddress} contact count reset after timeout. New count: 1 (Path: ${pathRequested})`);
             } else {
                 ipInfo.contactCount++;
+                Hexley.log(`${Hexley.frameworks.aurora.colorText('[firewallFramework]', this.frameworkColor)} UPDATED: IP ${ipAddress} contact count increased to ${ipInfo.contactCount} (Path: ${pathRequested})`);
             }
 
             ipInfo.lastSeen = now;
@@ -187,11 +217,16 @@ export const firewallFramework = {
             
             if (ipInfo.contactCount >= tolerance && (now.getTime() - new Date(ipInfo.firstSeen).getTime()) / (1000 * 60) <= timeoutMinutes) {
                 ipInfo.isBlacklisted = true;
-                Hexley.log(`${Hexley.frameworks.aurora.colorText('[firewallFramework]', this.frameworkColor)} Blacklisting IP: ${ipAddress} (Exceeded tolerance of ${tolerance} requests in ${timeoutMinutes} minutes)`);
+                Hexley.log(`${Hexley.frameworks.aurora.colorText('[firewallFramework]', this.frameworkColor)} BLACKLISTED: IP ${ipAddress} (Exceeded ${tolerance} requests in ${timeoutMinutes} minutes)`);
+            }
+            
+            const result = !ipInfo.isBlacklisted;
+            if (result && ipInfo.contactCount < tolerance) {
+                Hexley.log(`${Hexley.frameworks.aurora.colorText('[firewallFramework]', this.frameworkColor)} ALLOWED: IP ${ipAddress} (Count: ${ipInfo.contactCount}/${tolerance})`);
             }
             
             await Hexley.frameworks.database.upsert({ options: { tableName: 'firewallMetIPsTable' } }, ipInfo);
-            return !ipInfo.isBlacklisted;
+            return result;
 
         } else {
             const newIpEntry = {
@@ -201,7 +236,9 @@ export const firewallFramework = {
                 lastSeen: now,
                 lastPathRequested: pathRequested
             };
-            await Hexley.frameworks.database.add({ options: { tableName: 'firewallMetIPsTable' } }, newIpEntry, {});
+
+            Hexley.log(`${Hexley.frameworks.aurora.colorText('[firewallFramework]', this.frameworkColor)} NEW IP MET: IP ${ipAddress} recorded and allowed (Path: ${pathRequested})`);
+            await Hexley.frameworks.database.upsert({ options: { tableName: 'firewallMetIPsTable' } }, newIpEntry);
             return true;
         }
     },

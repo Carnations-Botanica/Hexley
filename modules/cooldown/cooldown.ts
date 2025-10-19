@@ -21,7 +21,7 @@ export const cooldown = {
     cooldownInit(Hexley: any) {
         Hexley.log(`${Hexley.frameworks.aurora.colorText('[cooldown/cooldownInit]', this.moduleColor)} Initializing Cooldown Module...`);
 
-        if (Hexley.discordLoaded) {
+        if (Hexley.resources.framework.database.isLoaded) {
             Hexley.frameworks.discord.client.on(Events.InteractionCreate, async (interaction: Interaction) => {
                 if (!interaction.isChatInputCommand() || interaction.commandName !== 'cooldowns') return;
                 await this.handleCooldowns(Hexley, interaction);

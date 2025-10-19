@@ -1,5 +1,4 @@
 import { DataTypes, Op } from 'sequelize';
-import path from 'path';
 
 // Define the structure of our cooldownTable model.
 const cooldownTable = {
@@ -48,16 +47,12 @@ export const cooldownFramework = {
     async initCooldownFramework(Hexley: any) {
         Hexley.log(`${Hexley.frameworks.aurora.colorText('[cooldownFramework]', this.frameworkColor)} Initializing...`);
         
-        if (Hexley.databaseLoaded) {
+        if (Hexley.resources.framework.database.isLoaded) {
             await Hexley.frameworks.database.initTable(cooldownTable);
-
-            Hexley.core.once('registryFramework.ready', () => {
-                const plistPath = path.join(Hexley.privateFrameworksRootPath, 'cooldownFramework', 'info.plist');
-                Hexley.frameworks.registry.addEntryByPlist(Hexley, plistPath);
-            });
-
+            Hexley.resources.framework.cooldown.isLoaded = true;
             Hexley.log(`${Hexley.frameworks.aurora.colorText('[cooldownFramework]', this.frameworkColor)} Initialized!`);
         } else {
+            Hexley.resources.framework.cooldown.isLoaded = false; // ensure this value, even if its default in the HGO
             Hexley.log(`${Hexley.frameworks.aurora.colorText('[cooldownFramework]', Hexley.frameworks.aurora.tintYellow)} Database is not loaded. Cooldown system will be unavailable.`);
         }
     },
@@ -70,7 +65,7 @@ export const cooldownFramework = {
      * @param {number} durationInSeconds - The length of the cooldown in seconds.
      */
     async setCooldown(Hexley: any, userId: string, type: string, durationInSeconds: number) {
-        if (!Hexley.databaseLoaded) return;
+        if (!Hexley.resources.framework.database.isLoaded) return;
 
         const endTime = new Date(Date.now() + durationInSeconds * 1000);
         const entry = { userId, type, endTime };
@@ -85,7 +80,7 @@ export const cooldownFramework = {
      * @returns {Promise<any | null>} The cooldown object if it's active, otherwise null.
      */
     async getCooldown(Hexley: any, userId: string, type: string): Promise<any | null> {
-        if (!Hexley.databaseLoaded) return null;
+        if (!Hexley.resources.framework.database.isLoaded) return null;
 
         // The 'get' function in the driver expects the 'where' object directly.
         return await Hexley.frameworks.database.get(cooldownTable, {
@@ -104,7 +99,7 @@ export const cooldownFramework = {
      * @returns {Promise<any[]>} A promise that resolves to an array of active cooldown objects.
      */
     async getAllCooldownsForUser(Hexley: any, userId: string): Promise<any[]> {
-        if (!Hexley.databaseLoaded) return [];
+        if (!Hexley.resources.framework.database.isLoaded) return [];
 
         // Fetch all entries from the cooldownTable.
         const allCooldowns = await Hexley.frameworks.database.getAll(cooldownTable);
@@ -127,7 +122,7 @@ export const cooldownFramework = {
      * @returns {Promise<any | null>} The expired cooldown object if found, otherwise null.
      */
     async findExpiredCooldown(Hexley: any, userId: string, type: string): Promise<any | null> {
-        if (!Hexley.databaseLoaded) return null;
+        if (!Hexley.resources.framework.database.isLoaded) return null;
 
         // Pass the 'where' object directly to the 'get' method.
         return await Hexley.frameworks.database.get(cooldownTable, {
@@ -158,7 +153,7 @@ export const cooldownFramework = {
      * @param {string} type - The unique name for the cooldown.
      */
     async clearCooldown(Hexley: any, userId: string, type: string) {
-        if (!Hexley.databaseLoaded) return;
+        if (!Hexley.resources.framework.database.isLoaded) return;
         
         // Pass the query object directly to the 'delete' method.
         await Hexley.frameworks.database.delete(cooldownTable, { userId, type });

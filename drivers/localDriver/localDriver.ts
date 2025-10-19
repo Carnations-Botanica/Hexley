@@ -151,11 +151,8 @@ export const localDriver: DatabaseDriver = {
             return false;
         }
 
-        // Temporarily, we manually add it to the Version Table, as we don't define info.plist's for Drivers yet.
-        _Hexley.core.once('versionFramework.ready', async () => {
-             await _Hexley.frameworks.version.addVersionEntry(_Hexley, 'localDriver', 'Driver', '1.0.2');
-        });
-
+        Hexley.resources.driver.database.isLoaded = true;
+        Hexley.resources.driver.local.isLoaded = true;
         return true;
     },
 

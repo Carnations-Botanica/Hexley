@@ -2,22 +2,22 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>Framework Type</key>
-	<string>Private</string>
-	<key>Framework Entry</key>
-	<string>initExperience</string>
 	<key>Framework Name</key>
-	<string>experienceFramework</string>
+	<string>eventFramework</string>
 	<key>Framework Description</key>
-	<string>A framework to manage user experience points (XP).</string>
+	<string>Provides a structured and asynchronous API for core system event management.</string>
 	<key>Framework Version</key>
 	<string>1.0.0</string>
 	<key>Framework Identifier</key>
-	<string>hex.carnations.experienceFramework</string>
+	<string>hex.carnations.eventFramework</string>
+	<key>Framework Type</key>
+	<string>Private</string>
+	<key>Framework Entry</key>
+	<string>initializeEvents</string>
 	<key>Framework Structure</key>
 	<dict>
 		<key>Main</key>
-		<string>experienceFramework.ts</string>
+		<string>eventFramework.ts</string>
 	</dict>
 </dict>
 </plist>

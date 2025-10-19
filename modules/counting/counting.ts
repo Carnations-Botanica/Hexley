@@ -84,12 +84,12 @@ export const counting = {
     async countingInit(Hexley: any) {
         Hexley.log(`${Hexley.frameworks.aurora.colorText('[counting/countingInit]', this.moduleColor)} Initializing Counting Module...`);
 
-        if (Hexley.databaseLoaded) {
+        if (Hexley.resources.framework.database.isLoaded) {
             await Hexley.frameworks.database.initTable(countingTable);
             await Hexley.frameworks.database.initTable(countingUserStatsTable);
         }
 
-        if (Hexley.discordLoaded) {
+        if (Hexley.resources.framework.database.isLoaded) {
             Hexley.frameworks.discord.client.on(Events.MessageCreate, (message: Message) => {
                 this.handleMessage(Hexley, message);
             });
@@ -119,7 +119,7 @@ export const counting = {
      * @param {string} channelId - The ID of the counting channel.
      */
     async _resetAllBreaks(Hexley: any, channelId: string) {
-        if (!Hexley.databaseLoaded) return;
+        if (!Hexley.resources.framework.database.isLoaded) return;
         
         // Fetch all users and filter by channelId
         const allUsers = await Hexley.frameworks.database.getAll(countingUserStatsTable);
@@ -181,7 +181,7 @@ export const counting = {
      * @returns {Promise<number>} The user's total successful count.
      */
     async getUserCount(Hexley: any, userId: string): Promise<number> {
-        if (!Hexley.databaseLoaded) return 0;
+        if (!Hexley.resources.framework.database.isLoaded) return 0;
 
         const channelId = process.env.COUNTING_CHANNEL_ID;
         const userStats = await Hexley.frameworks.database.get(countingUserStatsTable, { userId: userId, channelId: channelId });

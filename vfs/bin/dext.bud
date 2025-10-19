@@ -84,7 +84,7 @@ export const dext = {
 
         const action = args[0];
 
-        if (!Hexley.discordLoaded) {
+        if (!Hexley.resources.framework.discord.isLoaded) {
             console.log('dext: Discord framework is not loaded.');
             return;
         }

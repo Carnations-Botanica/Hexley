@@ -1,0 +1,18 @@
+
+/**
+ * example command source code.
+ */
+export const example = {
+    description: 'A simple test command for the hexShell environment provided by the example module.',
+    extendedDescription: 'Prints a message confirming successful loading and execution of a bud added via loaderFramework to hexShellFramework for a module.',
+
+    /**
+     * Main entry point for the example command.
+     * @param {any} Hexley - The main Hexley global object.
+     * @param {string[]} args - The arguments passed to the command.
+     */
+    main(Hexley: any, args: string[]) {
+        console.log("This is a test in the hexShell Environment, example.bud loaded successfully!");
+    }
+
+};

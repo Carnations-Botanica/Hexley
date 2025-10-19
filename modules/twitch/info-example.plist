@@ -40,11 +40,13 @@
 	<key>Module Settings</key>
 	<dict>
 		<key>enabled</key>
+		<true/>
+		<key>binSupport</key>
 		<false/>
 		<key>moduleEntryPoint</key>
 		<string>twitchInit</string>
 		<key>depsOn</key>
-		<string>discordFramework, endpointFramework</string>
+		<string>databaseFramework, firewallFramework, endpointFramework, discordFramework</string>
 		<key>hasPreviousInit</key>
 		<false/>
 		<key>debugMode</key>

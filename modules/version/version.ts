@@ -18,7 +18,7 @@ export const version = {
         
         Hexley.log(`${Hexley.frameworks.aurora.colorText('[version/versionInit]', this.moduleColor)} Initializing Version Module...`);
 
-        if (Hexley.discordLoaded) {
+        if (Hexley.resources.framework.discord.isLoaded) {
             Hexley.frameworks.discord.client.on(Events.InteractionCreate, async (interaction: Interaction) => {
                 if (!interaction.isChatInputCommand() || interaction.commandName !== 'version') return;
                 if (!interaction.member) return;

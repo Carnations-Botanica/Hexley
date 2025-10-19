@@ -1,0 +1,18 @@
+
+/**
+ * exampleSubFramework command source code.
+ */
+export const exampleSubFramework = {
+    description: 'A simple test command for the hexShell environment provided by exampleSubFramework.',
+    extendedDescription: 'Prints a message confirming successful loading and execution of a bud added via loaderFramework to hexShellFramework.',
+
+    /**
+     * Main entry point for the exampleSubFramework command.
+     * @param {any} Hexley - The main Hexley global object.
+     * @param {string[]} args - The arguments passed to the command.
+     */
+    main(Hexley: any, args: string[]) {
+        console.log("This is a test in the hexShell Environment, exampleSubFramework.bud loaded successfully!");
+    }
+
+};

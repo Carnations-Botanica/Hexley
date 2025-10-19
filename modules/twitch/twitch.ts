@@ -31,7 +31,7 @@ export const twitch = {
         }
 
         // Slash Command Handler
-        if (Hexley.discordLoaded) {
+        if (Hexley.resources.framework.discord.isLoaded) {
             Hexley.frameworks.discord.client.on(Events.InteractionCreate, async (interaction: Interaction) => {
                 if (!interaction.isChatInputCommand() || interaction.commandName !== 'twitch') return;
 

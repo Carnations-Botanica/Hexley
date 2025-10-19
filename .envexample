@@ -13,7 +13,7 @@ DISCORD_TOKEN = exampleToken
 GUILD_ID = exampleGuildId
 
 # Hexley Endpoint Variables
-SERVER_HOSTNAME = 192.168.0.0
+SERVER_HOSTNAME = 0.0.0.0
 ENDPOINT_PORT = 443
 ENABLE_HTTPS = TRUE
 HTTPS_CERT_PATH = /path/to/fullchain1.pem
@@ -35,30 +35,11 @@ DB_PASS = example
 DB_HOST = localhost
 DB_PORT = 3306
 
-# User IDs
-SPECIAL_USER_IDS = 
-HEXLEY_USER_ID = 
-ROYALGRAPHX_USER_ID = 
-
-# Default Role Variables
-ANNOUNCEMENTS_ROLE_ID = 
-MUTED_ROLE_ID = 
-MEMBER_ROLE_ID = 
-MODERATOR_ROLE_ID = 
-INTERNAL_ROLE_ID = 
-
-# Onboarding Channels
-WELCOME_CHANNEL_ID = 
-JOIN_LOG_CHANNEL_ID = 
-SELF_ASSIGN_CHANNEL_ID = 
-ANNOUNCEMENTS_CHANNEL_ID = 
-RULES_CHANNEL_ID = 
-GENERAL_CHANNEL_ID = 
-BOT_COMMANDS_CHANNEL_ID = 
-COUNTING_CHANNEL_ID = 
-SHOWCASE_CHANNEL_ID = 
-# Custom Channels
-EXAMPLE_CHANNEL_ID = 
-# Internal Channels for Staff
-INTERNAL_CHANNEL_ID = 
-MODERATION_CHANNEL_ID = 
+# PLAN AHEAD ! PLEASE USE MODULE/FRAMEWORK ENVIRONMENT VARIABLES IN PLIST !
+# PLAN AHEAD ! PLEASE USE MODULE/FRAMEWORK ENVIRONMENT VARIABLES IN PLIST !
+# Discord Variables removed because discordFramework
+# will now be the fully self contained Interface for Discord
+# Loader will now dynamically attach these variables to Hexley.
+# More information in this .env will eventually be handled this way soon.
+# PLAN AHEAD ! PLEASE USE MODULE/FRAMEWORK ENVIRONMENT VARIABLES IN PLIST !
+# PLAN AHEAD ! PLEASE USE MODULE/FRAMEWORK ENVIRONMENT VARIABLES IN PLIST !

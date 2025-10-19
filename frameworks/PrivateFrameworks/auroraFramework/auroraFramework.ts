@@ -79,20 +79,10 @@ export const auroraFramework = {
         Hexley.log(`[auroraFramework/initializeAurora] Initializing Aurora Framework...`);
         
         // Update the Hexley global object to signal that Aurora is loaded
-        Hexley.auroraLoaded = true;
+        Hexley.resources.framework.aurora.isLoaded = true;
 
         // Use the framework's own function to colorize the output
         Hexley.log(`${this.colorizeText('[auroraFramework/initializeAurora]')} ${this.colorText('Color introduced!', this.tintGreen)}`);
-
-        // Listen for registryFramework.ready and add the version to the database.
-        Hexley.core.once('registryFramework.ready', () => {
-            const plistPath = path.join(Hexley.privateFrameworksRootPath, 'auroraFramework', 'info.plist');
-            Hexley.frameworks.registry.addEntryByPlist(Hexley, plistPath);
-        });
-
-        // Also add to the in-memory versions object
-        Hexley.versions['auroraFramework'] = { version: '1.0.0', type: 'Framework' };
-
         Hexley.log(`${this.colorizeText('[auroraFramework/initializeAurora]')} ${this.colorText('Aurora has been loaded!', this.tintGreen)}`);
     }
 

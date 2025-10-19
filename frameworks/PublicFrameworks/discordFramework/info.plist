@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>Framework Type</key>
-	<string>Private</string>
+	<string>Public</string>
 	<key>Framework Entry</key>
-	<string>initializeDiscordSession</string>
+	<string>initializeDiscordClient</string>
 	<key>Framework Name</key>
 	<string>discordFramework</string>
 	<key>Framework Description</key>

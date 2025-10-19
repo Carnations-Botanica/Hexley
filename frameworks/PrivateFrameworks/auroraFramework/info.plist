@@ -11,7 +11,7 @@
 	<key>Framework Description</key>
 	<string>Provides Hexley the ability to color the console!</string>
 	<key>Framework Version</key>
-	<string>1.0.0</string>
+	<string>2.0.2</string>
 	<key>Framework Identifier</key>
 	<string>hex.carnations.auroraFramework</string>
 	<key>Framework Structure</key>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Kernel Name</key>
+	<string>hexleyDuo</string>
+	<key>Kernel Description</key>
+	<string>The Duo kernel identity for the Hexley project.</string>
+	<key>Kernel Version</key>
+	<string>3.1.2</string>
+	<key>Kernel Identifier</key>
+	<string>hex.carnations.hexleyDuo</string>
+	<key>Kernel Entry</key>
+	<string>Hexley</string>
+	<key>Kernel Structure</key>
+	<dict>
+		<key>Main</key>
+		<string>hexleyDuo-v3.1.0.ts</string>
+	</dict>
+</dict>
+</plist>

@@ -29,7 +29,7 @@ export const hexShell = {
         
         Hexley.log(`${Hexley.frameworks.aurora.colorText('[hexShell/hexShellInit]', this.moduleColor)} Initialized hexShell successfully`);
         Hexley.log(`${Hexley.frameworks.aurora.colorText('[hexShell/hexShellInit]', this.moduleColor)} Dropping into shell logged in as ${Hexley.username}!`);
-        Hexley.hexShellLoaded = true;
+        Hexley.resources.module.hexShell.isLoaded = true;
         
         // Welcome Message
         console.log(``); // Spacing
@@ -45,7 +45,7 @@ export const hexShell = {
         });
 
         // Update the prompt after every command
-        Hexley.core.on('hexshell.commandExecuted', () => {
+        Hexley.core.on('hexShell.commandExecuted', () => {
             Hexley.frameworks.hexShell.rl.setPrompt(getPrompt());
         });
         

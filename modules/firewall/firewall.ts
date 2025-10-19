@@ -15,7 +15,7 @@ export const firewall = {
         
         Hexley.log(`${Hexley.frameworks.aurora.colorText('[firewall/firewallInit]', this.moduleColor)} Initializing Firewall Module...`);
 
-        if (Hexley.discordLoaded) {
+        if (Hexley.resources.framework.discord.isLoaded) {
             Hexley.frameworks.discord.client.on(Events.InteractionCreate, async (interaction: Interaction) => {
                 if (!interaction.isChatInputCommand() || interaction.commandName !== 'firewall') return;
                 await this.handleFirewallCommand(Hexley, interaction);
@@ -60,7 +60,7 @@ export const firewall = {
     async handleFirewallCommand(Hexley: any, interaction: any) {
         await interaction.deferReply();
 
-        if (!Hexley.databaseLoaded) {
+        if (!Hexley.resources.framework.firewall.isLoaded) {
             await interaction.editReply('Firewall statistics are unavailable because the database is not loaded.');
             return;
         }

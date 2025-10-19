@@ -14,7 +14,7 @@ export const firewall = {
         const aurora = Hexley.frameworks.aurora;
         const dbFramework = Hexley.frameworks.database;
 
-        if (!Hexley.firewallLoaded || !dbFramework) {
+        if (!Hexley.resources.framework.firewall.isLoaded || !dbFramework) {
             console.log(aurora.colorText('Error: The Firewall Framework is not loaded.', aurora.tintRed));
             return;
         }

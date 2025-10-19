@@ -34,6 +34,7 @@ export const databaseFramework = {
             this._activeDriver = driverModule[`${mode.toLowerCase()}Driver`];
 
             if (!this._activeDriver) {
+                Hexley.resources.framework.database.activeDriver = "None";
                 throw new Error(`Driver for mode "${mode}" could not be loaded.`);
             }
 
@@ -41,18 +42,14 @@ export const databaseFramework = {
             const success = await this._activeDriver.initialize(Hexley);
             if (!success) {
                 Hexley.log(`Failed to initialize the "${mode}" database driver.`);
-                throw new Error(`Failed to initialize the "${mode}" database driver.`);
+                Hexley.resources.framework.database.isLoaded = false;
+                throw new Error(`Failed to initialize the "${this._activeDriver}" driver.`);
+            } else {
+                Hexley.resources.framework.database.selectedMode = mode;
+                Hexley.log(`${Hexley.frameworks.aurora.colorText('[databaseFramework/initializeDatabaseConnection]', this.frameworkColor)} Initialized in ${mode} successfully.`);
             }
 
-            // Listen for registryFramework.ready and add the version to the database.
-            Hexley.core.once('registryFramework.ready', () => {
-                const plistPath = path.join(Hexley.privateFrameworksRootPath, 'databaseFramework', 'info.plist');
-                Hexley.frameworks.registry.addEntryByPlist(Hexley, plistPath);
-                Hexley.frameworks.registry.addEntryByPlist(Hexley, baseDriverPlistPath);
-                Hexley.frameworks.registry.addEntryByPlist(Hexley, driverPlistPath);
-            });
-
-            Hexley.databaseLoaded = true;
+            Hexley.resources.framework.database.isLoaded = true;
             Hexley.log(`${Hexley.frameworks.aurora.colorText('[databaseFramework]', this.frameworkColor)} Initialized! Database Framework is now loaded into memory.`);
 
         } catch (error: any) {

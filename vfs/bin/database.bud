@@ -14,7 +14,7 @@ export const database = {
     async main(Hexley: any, args: string[]) {
         const aurora = Hexley.frameworks.aurora;
         const dbFramework = Hexley.frameworks.database;
-        if (!Hexley.databaseLoaded || !dbFramework) {
+        if (!Hexley.resources.framework.database.isLoaded || !dbFramework) {
             console.log(aurora.colorText('Error: The Database Framework is not loaded.', aurora.tintRed));
             console.log(aurora.colorText('Ensure DATABASE_ENABLED=TRUE in your .env file.', aurora.tintYellow));
             return;

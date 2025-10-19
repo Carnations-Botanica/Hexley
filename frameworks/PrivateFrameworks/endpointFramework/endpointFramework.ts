@@ -60,12 +60,21 @@ export const endpointFramework = {
      * @returns {boolean} True if the signature is valid, false otherwise.
      */
     _verifyTwitchSignature(Hexley: any, request: Request, body: string, secret: string): boolean {
+        const { aurora } = Hexley.frameworks;
+        Hexley.log(`${aurora.colorText('[endpointFramework/twitch]', this.frameworkColor)} Verifying Twitch signature...`);
+
         const messageId = request.headers.get('Twitch-Eventsub-Message-Id');
         const timestamp = request.headers.get('Twitch-Eventsub-Message-Timestamp');
         const signature = request.headers.get('Twitch-Eventsub-Message-Signature');
+
+        if (Hexley.debugMode) {
+            Hexley.log(`${aurora.colorText('[endpointFramework/twitch/Dbg]', this.frameworkColor)} Message ID: ${messageId}`);
+            Hexley.log(`${aurora.colorText('[endpointFramework/twitch/Dbg]', this.frameworkColor)} Timestamp: ${timestamp}`);
+            Hexley.log(`${aurora.colorText('[endpointFramework/twitch/Dbg]', this.frameworkColor)} Signature: ${signature}`);
+        }
         
         if (!messageId || !timestamp || !signature) {
-            Hexley.log(`${Hexley.frameworks.aurora.colorText('[endpointFramework/twitch]', Hexley.frameworks.aurora.tintRed)} Missing required Twitch signature headers.`);
+            Hexley.log(`${aurora.colorText('[endpointFramework/twitch]', aurora.tintRed)} Missing required Twitch signature headers.`);
             return false;
         }
 
@@ -73,12 +82,17 @@ export const endpointFramework = {
         const hmac = crypto.createHmac('sha256', secret);
         hmac.update(message);
         const expectedSignature = `sha256=${hmac.digest('hex')}`;
+        
+        if (Hexley.debugMode) {
+            Hexley.log(`${aurora.colorText('[endpointFramework/twitch/Dbg]', this.frameworkColor)} Calculated Signature: ${expectedSignature}`);
+        }
 
         if (signature !== expectedSignature) {
-            Hexley.log(`${Hexley.frameworks.aurora.colorText('[endpointFramework/twitch]', Hexley.frameworks.aurora.tintRed)} Invalid Twitch signature.`);
+            Hexley.log(`${aurora.colorText('[endpointFramework/twitch]', aurora.tintRed)} Invalid Twitch signature. Aborting request.`);
             return false;
         }
         
+        Hexley.log(`${aurora.colorText('[endpointFramework/twitch]', aurora.tintGreen)} Twitch signature verified successfully.`);
         return true;
     },
 
@@ -88,6 +102,7 @@ export const endpointFramework = {
      * @param {any} request - The incoming request object.
      */
     async _handleTwitchWebhook(Hexley: any, request: Request) {
+        Hexley.log(`${Hexley.frameworks.aurora.colorText('[endpointFramework/twitch]', this.frameworkColor)} Handling incoming Twitch webhook...`);
         const { TWITCH_WEBSOCKET_SECRET } = Hexley.modules.twitch.config;
         const bodyString = await request.text();
 
@@ -110,9 +125,11 @@ export const endpointFramework = {
         
         const data = JSON.parse(bodyString);
         // We now delegate the processing to the loaded twitch module
-        if (Hexley.modules.twitch) {
+        if (Hexley.resources.module.twitch.isLoaded) {
+            Hexley.log(`${Hexley.frameworks.aurora.colorText('[endpointFramework/twitch]', this.frameworkColor)} Handing off webhook data to the Twitch module.`);
             Hexley.modules.twitch.handleWebhook(Hexley, data);
         } else {
+            Hexley.log(`${Hexley.frameworks.aurora.colorText('[endpointFramework/twitch]', this.frameworkColor)} Twitch module is not loaded! Logging API call.`);
             this._logApiData(Hexley, 'twitch', data);
         }
         
@@ -125,6 +142,7 @@ export const endpointFramework = {
      * @param {any} data - The JSON data from the request body.
      */
     _handleGitHubWebhook(Hexley: any, data: any) {
+        Hexley.log(`${Hexley.frameworks.aurora.colorText('[endpointFramework/github]', this.frameworkColor)} Handling incoming GitHub webhook...`);
         this._logApiData(Hexley, 'github', data);
     },
 
@@ -133,10 +151,11 @@ export const endpointFramework = {
      * @param {any} Hexley - The main Hexley global object.
      */
     async initializeEndpoint(Hexley: any) {
-        Hexley.log(`${Hexley.frameworks.aurora.colorText('[endpointFramework/initializeEndpoint]', this.frameworkColor)} Initializing...`);
+        const { aurora } = Hexley.frameworks;
+        Hexley.log(`${aurora.colorText('[endpointFramework/initializeEndpoint]', this.frameworkColor)} Initializing...`);
 
         if (this._serverInstance) {
-            Hexley.log(`${Hexley.frameworks.aurora.colorText('[endpointFramework/initializeEndpoint]', this.frameworkColor)} Server is already running. Skipping initialization.`);
+            Hexley.log(`${aurora.colorText('[endpointFramework/initializeEndpoint]', aurora.tintYellow)} Server is already running. Skipping initialization.`);
             return;
         }
 
@@ -148,7 +167,16 @@ export const endpointFramework = {
         const keyPath = process.env.HTTPS_KEY_PATH;
         const certPath = process.env.HTTPS_CERT_PATH;
         const desiredPort = process.env.ENDPOINT_PORT ? parseInt(process.env.ENDPOINT_PORT) : (enableHttps ? 443 : 3000);
-        const hostname = process.env.ENDPOINT_IP || '0.0.0.0';
+        const hostname = process.env.SERVER_HOSTNAME || '0.0.0.0';
+
+        Hexley.log(`${aurora.colorText('[endpointFramework/initializeEndpoint]', this.frameworkColor)} Server Configuration:`);
+        Hexley.log(`${aurora.colorText('  - Protocol:', this.frameworkColor)} ${enableHttps ? 'HTTPS' : 'HTTP'}`);
+        Hexley.log(`${aurora.colorText('  - Hostname:', this.frameworkColor)} ${hostname}`);
+        Hexley.log(`${aurora.colorText('  - Port:', this.frameworkColor)} ${desiredPort}`);
+        if(enableHttps) {
+            Hexley.log(`${aurora.colorText('  - Key Path:', this.frameworkColor)} ${keyPath}`);
+            Hexley.log(`${aurora.colorText('  - Cert Path:', this.frameworkColor)} ${certPath}`);
+        }
 
         const serverOptions: any = {
             port: desiredPort,
@@ -166,6 +194,15 @@ export const endpointFramework = {
                     const duration = (performance.now() - startTime).toFixed(2);
                     endpointFramework.logEndpointRequest(Hexley, request, sanitizedClientIp, request.url, duration, 400, 'BAD_REQUEST');
                     return new Response("Bad Request", { status: 400, headers: { 'X-Internal-Resolve-Time': `${duration}ms` } });
+                }
+
+                if(Hexley.debugMode) {
+                    Hexley.log(`${aurora.colorText('[endpointFramework/fetch/Dbg]', endpointFramework.frameworkColor)} Incoming request from ${sanitizedClientIp} for ${url.pathname}`);
+                    const headers: {[key: string]: string} = {};
+                    request.headers.forEach((value, key) => { headers[key] = value });
+                    if(Hexley.frameworkDebug){
+                        Hexley.log(headers);
+                    }
                 }
 
                 const isAllowed = await Hexley.frameworks.firewall.inspectAddress(Hexley, sanitizedClientIp, url.pathname);
@@ -232,32 +269,36 @@ export const endpointFramework = {
 
         if (enableHttps) {
             if (!keyPath || !certPath) {
-                Hexley.log(`${Hexley.frameworks.aurora.colorText('[endpointFramework/initializeEndpoint]', this.frameworkColor)} HTTPS enabled, but key and/or cert paths are not specified in .env! Starting as HTTP.`);
+                Hexley.log(`${aurora.colorText('[endpointFramework/initializeEndpoint]', aurora.tintYellow)} HTTPS enabled, but key and/or cert paths are not specified in .env! Starting as HTTP.`);
             } else {
-                serverOptions.key = await Bun.file(keyPath).text();
-                serverOptions.cert = await Bun.file(certPath).text();
+                try {
+                    serverOptions.key = await Bun.file(keyPath).text();
+                    serverOptions.cert = await Bun.file(certPath).text();
+                     Hexley.log(`${aurora.colorText('[endpointFramework/initializeEndpoint]', this.frameworkColor)} Successfully loaded HTTPS key and certificate.`);
+                } catch(e: any) {
+                    Hexley.log(`${aurora.colorText('[endpointFramework/initializeEndpoint]', aurora.tintRed)} Failed to load HTTPS credentials: ${e.message}`);
+                    Hexley.log(`${aurora.colorText('[endpointFramework/initializeEndpoint]', aurora.tintYellow)} Falling back to HTTP.`);
+                    delete serverOptions.key;
+                    delete serverOptions.cert;
+                }
             }
         }
 
         try {
             this._serverInstance = serve(serverOptions);
-            const protocol = enableHttps ? 'https' : 'http';
-            Hexley.log(`${Hexley.frameworks.aurora.colorText('[endpointFramework/initializeEndpoint]', this.frameworkColor)} EndpointFramework server is running on ${protocol}://${this._serverInstance.hostname}:${this._serverInstance.port}`);
+            const protocol = (enableHttps && serverOptions.key) ? 'https' : 'http';
+            Hexley.resources.framework.endpoint.isLoaded = true;
+            Hexley.log(`${aurora.colorText('[endpointFramework/initializeEndpoint]', aurora.tintGreen)} EndpointFramework server is running on ${protocol}://${this._serverInstance.hostname}:${this._serverInstance.port}`);
         } catch (error) {
-            Hexley.log(`${Hexley.frameworks.aurora.colorText('[endpointFramework/initializeEndpoint]', this.frameworkColor)} Error starting the server: ${error}`);
+            Hexley.log(`${aurora.colorText('[endpointFramework/initializeEndpoint]', aurora.tintRed)} Error starting the server: ${error}`);
             this._serverInstance = null;
         }
-
-        Hexley.core.once('registryFramework.ready', async () => {
-            const plistPath = path.join(Hexley.privateFrameworksRootPath, 'endpointFramework', 'info.plist');
-            await Hexley.frameworks.registry.addEntryByPlist(Hexley, plistPath);
-        });
-
-        Hexley.versions['endpointFramework'] = { version: '1.0.0', type: 'Framework' };
-        Hexley.log(`${Hexley.frameworks.aurora.colorText('[endpointFramework/initializeEndpoint]', this.frameworkColor)} Endpoint Framework has been loaded!`);
+        
+        Hexley.log(`${aurora.colorText('[endpointFramework/initializeEndpoint]', this.frameworkColor)} Endpoint Framework has been loaded!`);
     },
 
     getServer(): Server | null {
         return this._serverInstance;
     },
+
 };

@@ -3,7 +3,7 @@ import path from 'path';
 
 export const filesystemFramework = {
     // Framework Logging Color
-    frameworkColor: "#90EE90", // A light green for file operations
+    frameworkColor: "#654321",
 
     // VFS state
     vfsRootPath: '',
@@ -114,13 +114,7 @@ export const filesystemFramework = {
         
         // Set the current working directory AFTER the user's home is established
         this.updateCwd(Hexley, path.join('/home', Hexley.username));
-
-        Hexley.core.once('registryFramework.ready', () => {
-            const plistPath = path.join(Hexley.privateFrameworksRootPath, 'filesystemFramework', 'info.plist');
-            Hexley.frameworks.registry.addEntryByPlist(Hexley, plistPath);
-        });
-
-        Hexley.filesystemLoaded = true;
+        Hexley.resources.framework.filesystem!.isLoaded = true;
         Hexley.log(`${Hexley.frameworks.aurora.colorText('[filesystemFramework/initializeFilesystem]', this.frameworkColor)} Initialized! Filesystem Framework is now ready.`);
     },
 

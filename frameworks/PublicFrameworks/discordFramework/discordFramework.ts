@@ -1,5 +1,4 @@
 import { Client, GatewayIntentBits, Guild, Events, SlashCommandBuilder, ApplicationCommandOptionType, GuildMember, EmbedBuilder, Message, TextChannel } from 'discord.js';
-import path from 'path';
 
 // Define interfaces for our ID collections for strong typing
 interface userIdCollection {
@@ -102,59 +101,73 @@ export const discordFramework = {
 
     /**
      * Creates, logs in, and prepares the Discord client and guild objects.
+     * The function now returns a Promise that resolves upon successful connection (ClientReady + Guild Fetch)
+     * or rejects upon failure.
      * @param {typeof Hexley} Hexley - The main Hexley global object.
+     * @returns {Promise<boolean>} Resolves true on success, rejects on fatal error.
      */
-    async initializeDiscordClient(Hexley: any) {
-        Hexley.log(`${Hexley.frameworks.aurora.colorText('[discordFramework/initializeDiscordClient]', Hexley.frameworks.aurora.tintBlurple)} Initializing Discord Client Session.`);
-        
-        const client = new Client({
-            intents: [
-                GatewayIntentBits.Guilds,
-                GatewayIntentBits.GuildMembers,
-                GatewayIntentBits.GuildMessages,
-                GatewayIntentBits.MessageContent,
-                GatewayIntentBits.GuildVoiceStates,
-                GatewayIntentBits.GuildPresences,
-            ],
-        });
-
-        client.setMaxListeners(30);
-
-        client.once(Events.ClientReady, async (loggedInClient) => {
-            Hexley.log(`${Hexley.frameworks.aurora.colorText('[discordFramework/initializeDiscordClient]', Hexley.frameworks.aurora.tintBlurple)} Logged in as ${loggedInClient.user.tag}`);
+    async initializeDiscordClient(Hexley: any): Promise<boolean> {
+        return new Promise(async (resolve, reject) => {
+            Hexley.log(`${Hexley.frameworks.aurora.colorText('[discordFramework/initializeDiscordClient]', Hexley.frameworks.aurora.tintBlurple)} Initializing Discord Client Session.`);
             
-            const guildId = process.env.GUILD_ID;
-            if (!guildId) {
-                console.error("[discordFramework/initializeDiscordClient] Fatal: GUILD_ID is not defined in .env but is required for client initialization.");
-                process.exit(1);
-            }
+            const client = new Client({
+                intents: [
+                    GatewayIntentBits.Guilds,
+                    GatewayIntentBits.GuildMembers,
+                    GatewayIntentBits.GuildMessages,
+                    GatewayIntentBits.MessageContent,
+                    GatewayIntentBits.GuildVoiceStates,
+                    GatewayIntentBits.GuildPresences,
+                ],
+            });
 
+            client.setMaxListeners(30);
+
+            // 1. Attach the listener BEFORE login
+            client.once(Events.ClientReady, async (loggedInClient: Client<true>) => {
+                Hexley.log(`${Hexley.frameworks.aurora.colorText('[discordFramework/initializeDiscordClient]', Hexley.frameworks.aurora.tintBlurple)} Logged in as ${loggedInClient.user.tag}`);
+                
+                const guildId = process.env.GUILD_ID;
+                if (!guildId) {
+                    // Fatal error detection should reject the promise
+                    const errMsg = "[discordFramework/initializeDiscordClient] Fatal: GUILD_ID is not defined in .env but is required.";
+                    console.error(errMsg);
+                    // Use reject() instead of process.exit(1) to allow the calling code (Loader) to handle cleanup
+                    reject(new Error(errMsg)); 
+                    return;
+                }
+
+                try {
+                    const guild = await loggedInClient.guilds.fetch(guildId);
+                    this.client = loggedInClient;
+                    this.guild = guild;
+                    Hexley.log(`${Hexley.frameworks.aurora.colorText('[discordFramework/initializeDiscordClient]', Hexley.frameworks.aurora.tintBlurple)} Successfully fetched and set guild: "${guild.name}"`);
+
+                } catch (error: any) {
+                    const errMsg = `[discordFramework/initializeDiscordClient] Fatal: Could not fetch guild with ID: ${guildId}. Error: ${error.message}`;
+                    console.error(errMsg);
+                    // Use reject() for failed guild fetch
+                    reject(new Error(errMsg));
+                    return;
+                }
+
+                Hexley.resources.framework.discord.isLoaded = true;
+                Hexley.log(`${Hexley.frameworks.aurora.colorText('[discordFramework/initializeDiscordClient]', Hexley.frameworks.aurora.tintBlurple)} Discord Client initialization complete.`);
+                
+                // Resolve the promise, signaling success to the Loader
+                resolve(true);
+            });
+
+            // Handle failed login before client.once(Events.ClientReady)
             try {
-                const guild = await loggedInClient.guilds.fetch(guildId);
-                this.client = loggedInClient;
-                this.guild = guild;
-                Hexley.log(`${Hexley.frameworks.aurora.colorText('[discordFramework/initializeDiscordClient]', Hexley.frameworks.aurora.tintBlurple)} Successfully fetched and set guild: "${guild.name}"`);
-
-            } catch (error) {
-                console.error(`[discordFramework/initializeDiscordClient] Fatal: Could not fetch guild with ID: ${Hexley.guildId}. Please check if the ID is correct and the bot is in the server.`);
-                process.exit(1);
+                await client.login(process.env.DISCORD_TOKEN);
+            } catch (error: any) {
+                const errMsg = `[discordFramework/initializeDiscordClient] Fatal: Failed to login to Discord. Check DISCORD_TOKEN. Error: ${error.message}`;
+                console.error(errMsg);
+                // Reject the promise immediately upon login failure
+                reject(new Error(errMsg));
             }
-
-            // Register the module to registry
-            const plistPath = path.join(Hexley.privateFrameworksRootPath, 'discordFramework', 'info.plist');
-            await Hexley.frameworks.registry.addEntryByPlist(Hexley, plistPath);
-
-            // Emit the ready signal on the core event emitter
-            Hexley.core.emit('discordClient.ready', loggedInClient);
         });
-
-        try {
-            await client.login(Hexley.token);
-        } catch (error: any) {
-            console.error(`[discordFramework/initializeDiscordClient] Fatal: Failed to login to Discord. Please check your DISCORD_TOKEN.`);
-            console.error(error.message);
-            process.exit(1);
-        }
     },
 
     /**

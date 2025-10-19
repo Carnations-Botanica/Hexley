@@ -65,7 +65,6 @@ export const hexfetch = {
         const gpuData = await si.graphics();
         const gpuModel = gpuData.controllers.length > 0 ? gpuData.controllers[0].model : 'No GPU Detected';
         const working_dir = process.cwd();
-        const versionNumber = String(Hexley.versions['hexleyCore']?.version || 'N/A');
         const registryVersionString = String(Hexley.versions['registryFramework']?.version || 'N/A');
         const hexShellVersionString = String(Hexley.versions['hexShellFramework']?.version || 'N/A');
         const loaderVersion = String(Hexley.versions['loaderFramework']?.version || 'N/A');
@@ -81,16 +80,27 @@ export const hexfetch = {
         const finalPrivateDrivers = String(registry.getPrivateDriversCount());
         const finalPublicDrivers = String(registry.getPublicDriversCount());
         
+        // Kernel Data - This isn't future proof for when "micro" kernels are a thing, or multi-instancing is a thing
+        let kernelName = 'Unknown Hexley';
+        let kernelVersion = 'N/A';
+        for (const name in Hexley.versions) {
+
+            const entry = Hexley.versions[name];
+            if (entry && entry.type === 'Kernel') {
+                kernelName = name; // The key is the name
+                kernelVersion = entry.version;
+                break; // Stop once we find the first (primary) kernel
+            }
+
+        }
+
         // Discord Data
         let discordUptime = 'Discord Not Loaded';
         let deployedGuildInfo = 'N/A (Discord Not Loaded)';
-        const hexColor = aurora.tintRedBright; 
-        
         const discordClient = Hexley.frameworks.discord?.client;
         const discordGuild = Hexley.frameworks.discord?.guild;
 
-        if (Hexley.discordLoaded && discordClient && discordGuild) {
-            
+        if (Hexley.resources.framework.discord.isLoaded && discordClient && discordGuild) {
             // Client Uptime Data
             if (discordClient.uptime !== undefined) {
                 const uptimeInMs = discordClient.uptime;
@@ -112,40 +122,42 @@ export const hexfetch = {
                  deployedGuildInfo = 'Discord Loaded (Guild Unresolved)';
             }
         }
-        
+
+        const h = aurora.tintRedBright;
         const c = aurora.colorText;
-        const tintGray = aurora.tintGray;
-        const dividerLine = c('-'.repeat(username.length + hostname.length + 1), tintGray);
+        const g = aurora.tintGray;
+        const dividerLine = c('-'.repeat(username.length + hostname.length + 1), g);
 
         console.log('');
-        console.log(c('                                                    ', hexColor));
-        console.log(c('            +x                                      ', hexColor));
-        console.log(`${c('        Xx x++X xxX', hexColor)}${c('          x+++                   ', tintGray)}${c(`        ${username}@${hostname}`, hexColor)}`);
-        console.log(`${c('       +++X++;+$+;+x', hexColor)}${c('    x+++++++++++++x             ', tintGray)}${c(`        ${dividerLine}`, hexColor)}`);
-        console.log(`${c('       +++X x+$ xx++', hexColor)}${c('   X;;;;;+++;++;;;;++           ', tintGray)}${c(`        Host:`, hexColor)}${c(` ${osType} ${osRelease} ${osArch}`, tintGray)}`);
-        console.log(`${c('      x++   x+X   X;+', hexColor)}${c('  $;;+x;;;;;;++;;;;;+X         ', tintGray)}${c(`        System Uptime:`, hexColor)}${c(` ${hostDays} days, ${hostHours} hours, ${hostMinutes} minutes`, tintGray)}`);
-        console.log(`${c('      x++   x+x    ++X', hexColor)}${c('  x;+;:::;+x;;+;;;;;+X x      ', tintGray)}${c(`        System Memory:`, hexColor)}${c(` ${usedMemoryGB} GB / ${totalMemoryGB} GB`, tintGray)}`);
-        console.log(`${c('      x++X  x;+   x;+X', hexColor)}${c('  x:.;:::.:;;;;+;;++;;;;+     ', tintGray)}${c(`        CPU:`, hexColor)}${c(` ${cpuModel} (${cpuCores} cores)`, tintGray)}`);
-        console.log(`${c('       ++;+++;;+++;+xX', hexColor)}${c('+;;++:;..  .;;;;;++;;;;+      ', tintGray)}${c(`        GPU:`, hexColor)}${c(` ${gpuModel}`, tintGray)}`);
-        console.log(`${c('         +x+++;+xxX', hexColor)}${c('$+x;;;x+;+.. xx;;;;;;;++xx       ', tintGray)}${c(`        Hexley at:`, hexColor)}${c(` ${working_dir}`, tintGray)}`);
-        console.log(`${c('             x;x', hexColor)}${c('    $X+;;;;;; .;+;;+;;;;;;+$        ', tintGray)}${c(`        Local IPv4 Address:`, hexColor)}${c(` ${hostIPv4}`, tintGray)}`);
-        console.log(`${c('             x;+', hexColor)}${c('      &x;;;;;;+++;;;;;;;+x          ', tintGray)}${c(`        Local IPv6 Address:`, hexColor)}${c(` ${hostIPv6}`, tintGray)}`);
-        console.log(`${c('             x;+', hexColor)}${c('        $+++x::+x;+;;++X            ', tintGray)}${c(`        Hexley Core Version:`, hexColor)}${c(` ${versionNumber}`, tintGray)}`);
-        console.log(`${c('             $;+$', hexColor)}${c('       +:::+++xX;+;;+              ', tintGray)}${c(`        The Registry Version:`, hexColor)}${c(` ${registryVersionString}`, tintGray)}`);
-        console.log(`${c('             X', tintGray)}${c('+++;', hexColor)}${c(';x+;:: .  :::::xx+;++             ', tintGray)}${c(`        Loader Version:`, hexColor)}${c(` ${loaderVersion}`, tintGray)}`);
-        console.log(`${c('             X', tintGray)}${c('+++;', hexColor)}${c(';x+;:: .  :::::xx+;++             ', tintGray)}${c(`        hexShell Version:`, hexColor)}${c(` ${hexShellVersionString}`, tintGray)}`);
-        console.log(`${c('              +++;', hexColor)}${c(':::::.    :;;:::;+                ', tintGray)}${c(`        hexFetch Version:`, hexColor)}${c(` ${program_ver}`, tintGray)}`);
-        console.log(`${c('              x;++', hexColor)}${c(';:::.     .:;+;::;+               ', tintGray)}${c(`        Loaded Frameworks:`, hexColor)}${c(` ${finalTotalFrameworks}`, tintGray)}`);
-        console.log(`${c('              x;+', hexColor)}${c('  $X.  .    ::;;;;;+               ', tintGray)}${c(`         - Private:`, hexColor)}${c(` ${finalPrivateFrameworks}`, tintGray)}`);
-        console.log(`${c('              x;+$', hexColor)}${c('  ;.       .::;+x$                ', tintGray)}${c(`         - Public:`, hexColor)}${c(` ${finalPublicFrameworks}`, tintGray)}`);
-        console.log(`${c('              x;+X', hexColor)}${c('  X. . . ...:::;+                 ', tintGray)}${c(`        Loaded Modules:`, hexColor)}${c(` ${finalLoadedModules}`, tintGray)}`);
-        console.log(`${c('              x++x', hexColor)}${c('  x;.   .  .;:::;X                ', tintGray)}${c(`        Loaded Drivers:`, hexColor)}${c(` ${finalTotalDrivers}`, tintGray)}`);
-        console.log(`${c('              x+++', hexColor)}${c(' $::;.. ..;::::;+ X+Xx++xX        ', tintGray)}${c(`         - Private:`, hexColor)}${c(` ${finalPrivateDrivers}`, tintGray)}`);
-        console.log(`${c('               +;+', hexColor)}${c('$X+;;;;::;::::;;++;;:::;;+&       ', tintGray)}${c(`         - Public:`, hexColor)}${c(` ${finalPublicDrivers}`, tintGray)}`);
-        console.log(`${c('               +;+', hexColor)}${c('+++;;;++x+;;;;:x+++++++x          ', tintGray)}${c(`        Discord Client Uptime:`, hexColor)}${c(` ${discordUptime}`, tintGray)}`);
-        console.log(`${c('               xxXXXXX   x+x++x++$                  ', tintGray)}${c(`        Currently Deployed at:`, hexColor)}${c(` ${deployedGuildInfo}`, tintGray)}`);
-        console.log(c('                           X$x+xX                   ', tintGray));
-        console.log(c('                                                    ', tintGray));
+        console.log(c('                                                    ', h));
+        console.log(c('            +x                                      ', h));
+        console.log(`${c('        Xx x++X xxX', h)}${c('          x+++                   ', g)}${c(`        ${username}@${hostname}`, h)}`);
+        console.log(`${c('       +++X++;+$+;+x', h)}${c('    x+++++++++++++x             ', g)}${c(`        ${dividerLine}`, h)}`);
+        console.log(`${c('       +++X x+$ xx++', h)}${c('   X;;;;;+++;++;;;;++           ', g)}${c(`        Host:`, h)}${c(` ${osType} ${osRelease} ${osArch}`, g)}`);
+        console.log(`${c('      x++   x+X   X;+', h)}${c('  $;;+x;;;;;;++;;;;;+X         ', g)}${c(`        System Uptime:`, h)}${c(` ${hostDays} days, ${hostHours} hours, ${hostMinutes} minutes`, g)}`);
+        console.log(`${c('      x++   x+x    ++X', h)}${c('  x;+;:::;+x;;+;;;;;+X x      ', g)}${c(`        System Memory:`, h)}${c(` ${usedMemoryGB} GB / ${totalMemoryGB} GB`, g)}`);
+        console.log(`${c('      x++X  x;+   x;+X', h)}${c('  x:.;:::.:;;;;+;;++;;;;+     ', g)}${c(`        CPU:`, h)}${c(` ${cpuModel} (${cpuCores} cores)`, g)}`);
+        console.log(`${c('       ++;+++;;+++;+xX', h)}${c('+;;++:;..  .;;;;;++;;;;+      ', g)}${c(`        GPU:`, h)}${c(` ${gpuModel}`, g)}`);
+        console.log(`${c('         +x+++;+xxX', h)}${c('$+x;;;x+;+.. xx;;;;;;;++xx       ', g)}${c(`        Hexley at:`, h)}${c(` ${working_dir}`, g)}`);
+        console.log(`${c('             x;x', h)}${c('    $X+;;;;;; .;+;;+;;;;;;+$        ', g)}${c(`        Local IPv4 Address:`, h)}${c(` ${hostIPv4}`, g)}`);
+        console.log(`${c('             x;+', h)}${c('      &x;;;;;;+++;;;;;;;+x          ', g)}${c(`        Local IPv6 Address:`, h)}${c(` ${hostIPv6}`, g)}`);
+        console.log(`${c('             x;+', h)}${c('        $+++x::+x;+;;++X            ', g)}${c(`        ${kernelName} Version:`, h)}${c(` ${kernelVersion}`, g)}`);
+        console.log(`${c('             $;+$', h)}${c('       +:::+++xX;+;;+              ', g)}${c(`        The Registry Version:`, h)}${c(` ${registryVersionString}`, g)}`);
+        console.log(`${c('             X', g)}${c('+++;', h)}${c(';x+;:: .  :::::xx+;++             ', g)}${c(`        Loader Version:`, h)}${c(` ${loaderVersion}`, g)}`);
+        console.log(`${c('             X', g)}${c('+++;', h)}${c(';x+;:: .  :::::xx+;++             ', g)}${c(`        hexShell Version:`, h)}${c(` ${hexShellVersionString}`, g)}`);
+        console.log(`${c('              +++;', h)}${c(':::::.    :;;:::;+                ', g)}${c(`        hexFetch Version:`, h)}${c(` ${program_ver}`, g)}`);
+        console.log(`${c('              x;++', h)}${c(';:::.     .:;+;::;+               ', g)}${c(`        Loaded Frameworks:`, h)}${c(` ${finalTotalFrameworks}`, g)}`);
+        console.log(`${c('              x;+', h)}${c('  $X.  .    ::;;;;;+               ', g)}${c(`         - Private:`, h)}${c(` ${finalPrivateFrameworks}`, g)}`);
+        console.log(`${c('              x;+$', h)}${c('  ;.       .::;+x$                ', g)}${c(`         - Public:`, h)}${c(` ${finalPublicFrameworks}`, g)}`);
+        console.log(`${c('              x;+X', h)}${c('  X. . . ...:::;+                 ', g)}${c(`        Loaded Modules:`, h)}${c(` ${finalLoadedModules}`, g)}`);
+        console.log(`${c('              x++x', h)}${c('  x;.   .  .;:::;X                ', g)}${c(`        Loaded Drivers:`, h)}${c(` ${finalTotalDrivers}`, g)}`);
+        console.log(`${c('              x+++', h)}${c(' $::;.. ..;::::;+ X+Xx++xX        ', g)}${c(`         - Private:`, h)}${c(` ${finalPrivateDrivers}`, g)}`);
+        console.log(`${c('               +;+', h)}${c('$X+;;;;::;::::;;++;;:::;;+&       ', g)}${c(`         - Public:`, h)}${c(` ${finalPublicDrivers}`, g)}`);
+        console.log(`${c('               +;+', h)}${c('+++;;;++x+;;;;:x+++++++x          ', g)}${c(`        Discord Client Uptime:`, h)}${c(` ${discordUptime}`, g)}`);
+        console.log(`${c('               xxXXXXX   x+x++x++$                  ', g)}${c(`        Currently Deployed at:`, h)}${c(` ${deployedGuildInfo}`, g)}`);
+        console.log(c('                           X$x+xX                   ', g));
+        console.log(c('                                                    ', g));
         console.log('');
     }
+    
 };

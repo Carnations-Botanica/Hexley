@@ -11,7 +11,11 @@
 	<key>Framework Description</key>
 	<string>A basic firewall to protect Hexley's endpoints.</string>
 	<key>Framework Version</key>
-	<string>1.0.0</string>
+	<string>1.0.2</string>
+	<key>Framework Bin Support</key>
+	<true/>
+	<key>Framework Dependencies</key>
+	<string>databaseFramework, hexShellFramework</string>
 	<key>Framework Identifier</key>
 	<string>hex.carnations.firewallFramework</string>
 	<key>Framework Structure</key>

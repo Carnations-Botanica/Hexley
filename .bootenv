@@ -1,2 +1,8 @@
-# hexleyBoot Variables
-KERNEL="hexleyCore-v3.0.0"
+# hexleyBoot Runtime Variables
+# NOTE: Jumps in Minor Revisions -> Can no longer boot on latest resources.
+# Resources are: Frameworks, Modules, Drivers.
+# You will be required to downgrade these resources to boot older kernels.
+# The codename of the Kernel signifies which release resources you will require.
+
+# KERNEL="hexleyCore-v3.0.0"
+KERNEL="hexleyDuo-v3.1.0"

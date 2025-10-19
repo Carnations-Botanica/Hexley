@@ -11,7 +11,11 @@
 	<key>Framework Description</key>
 	<string>Provides Hexley an HTTP/S Server for Endpoints!</string>
 	<key>Framework Version</key>
-	<string>1.0.0</string>
+	<string>1.0.2</string>
+	<key>Framework Bin Support</key>
+	<false/>
+	<key>Framework Dependencies</key>
+	<string>databaseFramework, filesystemFramework, firewallFramework</string>
 	<key>Framework Identifier</key>
 	<string>hex.carnations.endpointFramework</string>
 	<key>Framework Structure</key>

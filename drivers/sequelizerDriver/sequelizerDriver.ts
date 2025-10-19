@@ -55,6 +55,8 @@ export const sequelizerDriver: DatabaseDriver = {
             });
             await _sequelize.authenticate();
             if (_Hexley?.driverDebug) _Hexley.log(`[sequelizerDriver] Connection successful.`);
+            Hexley.resources.driver.database.isLoaded = true;
+            Hexley.resources.driver.sequelizer.isLoaded = true;
 
             return true;
         } catch (error: any) {

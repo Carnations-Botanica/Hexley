@@ -38,23 +38,19 @@ export const versionFramework = {
         
         // Ensure the in-memory object exists
         Hexley.versions = Hexley.versions || {};
+        Hexley.log(`${Hexley.frameworks.aurora.colorText('[versionFramework]', this.frameworkColor)} The HGO has:`);
+        Hexley.log(Hexley.versions);
 
-        if (Hexley.databaseLoaded) {
+        if (Hexley.resources.framework.database.isLoaded) {
             await Hexley.frameworks.database.initTable(versionTable);
             // Reset the table for a clean slate on every boot
             await Hexley.frameworks.database.reset(versionTable);
+            Hexley.log(`${Hexley.frameworks.aurora.colorText('[versionFramework]', this.frameworkColor)} The versionTable has been reset!`);
         } else {
             Hexley.log(`${Hexley.frameworks.aurora.colorText('[versionFramework]', Hexley.frameworks.aurora.tintYellow)} Database is not loaded. Versioning will be in-memory only.`);
         }
         
-        Hexley.core.once('registryFramework.ready', () => {
-            const plistPath = path.join(Hexley.privateFrameworksRootPath, 'versionFramework', 'info.plist');
-            Hexley.frameworks.registry.addEntryByPlist(Hexley, plistPath);
-        });
-        
-        Hexley.versionLoaded = true;
-        Hexley.core.emit('versionFramework.ready');
-        
+        Hexley.resources.framework.version.isLoaded = true;
         Hexley.log(`${Hexley.frameworks.aurora.colorText('[versionFramework]', this.frameworkColor)} Initialized!`);
     },
 
@@ -67,11 +63,11 @@ export const versionFramework = {
      */
     async addVersionEntry(Hexley: any, name: string, type: string, version: string) {
         Hexley.versions[name] = { version, type };
-        Hexley.log(`${Hexley.frameworks.aurora.colorText('[versionFramework/addVersionEntry]', this.frameworkColor)} Added version entry for "${name}": ${version}`);
 
-        if (Hexley.databaseLoaded) {
+        if (Hexley.resources.framework.database.isLoaded) {
             const entry = { name, type, version };
             await Hexley.frameworks.database.upsert(versionTable, entry);
+            Hexley.log(`${Hexley.frameworks.aurora.colorText('[versionFramework/addVersionEntry]', this.frameworkColor)} Added version entry for "${name}": ${version}`);
         }
     },
 
@@ -86,7 +82,7 @@ export const versionFramework = {
             Hexley.log(`${Hexley.frameworks.aurora.colorText('[versionFramework/removeVersionEntry]', this.frameworkColor)} Removed version entry for "${name}".`);
         }
 
-        if (Hexley.databaseLoaded) {
+        if (Hexley.resources.framework.database.isLoaded) {
             await Hexley.frameworks.database.delete(versionTable, { name });
         }
     },
@@ -102,7 +98,7 @@ export const versionFramework = {
             return Hexley.versions[name];
         }
 
-        if (Hexley.databaseLoaded) {
+        if (Hexley.resources.framework.database.isLoaded) {
             return Hexley.frameworks.database.get(versionTable, { name: name });
         }
 
@@ -117,7 +113,7 @@ export const versionFramework = {
     async getAllVersionEntries(Hexley: any): Promise<any[]> {
         let entries: any[] = [];
 
-        if (Hexley.databaseLoaded) {
+        if (Hexley.resources.framework.database.isLoaded) {
             entries = await Hexley.frameworks.database.getAll(versionTable);
         } else {
             entries = Object.entries(Hexley.versions).map(([name, data]) => {
@@ -157,7 +153,7 @@ export const versionFramework = {
      * @param {any} Hexley - The main Hexley global object.
      */
     async shutdown(Hexley: any) {
-        if (Hexley.databaseLoaded) {
+        if (Hexley.resources.framework.database.isLoaded) {
             await Hexley.frameworks.database.reset(versionTable);
             Hexley.log(`${Hexley.frameworks.aurora.colorText('[versionFramework]', this.frameworkColor)} Version table cleared.`);
         }

@@ -1,3 +1,5 @@
+// modules/mathematics/mathematics.ts
+
 import { Events, EmbedBuilder, type Interaction, GuildMember, Message, MessageFlags } from 'discord.js';
 import { DataTypes } from 'sequelize';
 
@@ -8,6 +10,8 @@ const MAX_DIGITS_ANNOYING = 6; // Max operand value is 999999
 const BREAK_LIMIT = 5; // The consecutive break limit for personal stats
 const XP_PROGRESS_LIMIT = 15; // Number of solves required for XP cooldown
 const XP_COOLDOWN_DURATION_SECONDS = 3600; // 1 hour
+const THROTTLE_LOCK_MS = 2000; // 2 seconds delay after posting new problem (Requirement #3)
+const INTER_PROBLEM_DELAY_MS = 1000; // 1 second explicit wait after a solve/fail before posting new problem (Requirement #2)
 
 // Define the type for a difficulty tier to help the static compiler in vsc
 interface DifficultyTier {
@@ -65,12 +69,12 @@ const mathematicsTable = {
 
 const mathematicsUserStatsTable = {
     definition: {
-        userId: {
+        userId: { 
             type: DataTypes.STRING(191),
             allowNull: false,
             primaryKey: true
         },
-        channelId: {
+        channelId: { 
             type: DataTypes.STRING(191),
             allowNull: false
         },
@@ -101,7 +105,10 @@ const mathematicsUserStatsTable = {
  */
 export const mathematics = {
 
-    moduleColor: "#347aeb",
+    moduleColor: "#ff7f00",
+    isSolvingLocked: false as boolean,
+    mathematicsTable: mathematicsTable,
+    mathematicsUserStatsTable: mathematicsUserStatsTable,
 
     /**
      * Tiers define the complexity of problems based on the current streak.
@@ -121,7 +128,7 @@ export const mathematics = {
     async mathematicsInit(Hexley: any) {
         Hexley.log(`${Hexley.frameworks.aurora.colorText('[mathematics/mathematicsInit]', this.moduleColor)} Initializing Mathematics Module...`);
 
-        if (!Hexley.databaseLoaded) {
+        if (!Hexley.resources.framework.database.isLoaded) {
             Hexley.log(`${Hexley.frameworks.aurora.colorText('[mathematics]', Hexley.frameworks.aurora.tintRed)} Database not loaded. Math module disabled.`);
             return;
         }
@@ -143,7 +150,7 @@ export const mathematics = {
             await this._postNewProblem(Hexley, channelId, 0);
         }
 
-        if (Hexley.discordLoaded) {
+        if (Hexley.resources.framework.discord.isLoaded) {
             Hexley.frameworks.discord.client.on(Events.MessageCreate, (message: Message) => {
                 this.handleMessage(Hexley, message);
             });
@@ -153,11 +160,23 @@ export const mathematics = {
                 
                 if (interaction.commandName === 'mathematics') {
                     this.handleMathematicsStats(Hexley, interaction);
+                } else if (interaction.commandName === 'nextmath') {
+                    this.handleNextMath(Hexley, interaction);
                 }
             });
         }
         
         Hexley.log(`${Hexley.frameworks.aurora.colorText('[mathematics/mathematicsInit]', this.moduleColor)} Initialized Mathematics Module successfully!`);
+    },
+
+    /**
+     * Checks if a member has the internal/admin role.
+     */
+    _isAdmin(member: GuildMember): boolean {
+        const adminRoleId = process.env.INTERNAL_ROLE_ID;
+        if (!adminRoleId) return false;
+        if (!member) return false;
+        return member.roles.cache.has(adminRoleId);
     },
 
     /**
@@ -174,6 +193,14 @@ export const mathematics = {
      */
     _rand(min: number, max: number): number {
         return Math.floor(Math.random() * (max - min + 1)) + min;
+    },
+
+    /**
+     * A simple delay helper.
+     * @param {number} ms - The number of milliseconds to wait.
+     */
+    _delay(ms: number) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     },
 
     /**
@@ -257,7 +284,8 @@ export const mathematics = {
             result = eval(expression);
         }
 
-        if (result < 0 || !Number.isInteger(result)) {
+        // Ensure the result is strictly POSITIVE and an integer.
+        if (result <= 0 || !Number.isInteger(result)) {
              return this._generateProblem(streak);
         }
 
@@ -272,14 +300,18 @@ export const mathematics = {
      */
     async _postNewProblem(Hexley: any, channelId: string, currentStreak: number) {
         const { problem, answer } = this._generateProblem(currentStreak);
+        const tier = this._getTier(currentStreak);
+        
         let existingState = await Hexley.frameworks.database.get(mathematicsTable, { channelId });
-        let embedColor: any = this.moduleColor; // Default fallback color is the module's color
+        
+        // Logic to determine color based on previous solver
+        let embedColor: any = this.moduleColor; // Default fallback color
         const lastSolverId = existingState?.lastSolverUserId;
 
-        // But udate the color if someone successfully has a solve streak
         if (lastSolverId) {
             const member = await Hexley.frameworks.discord.getGuildMember(lastSolverId);
             if (member) {
+                // Get the Discord role color
                 embedColor = Hexley.frameworks.discord.getUserRoleColor(member);
             }
         }
@@ -288,28 +320,34 @@ export const mathematics = {
         await Hexley.frameworks.database.upsert(mathematicsTable, {
             channelId,
             currentStreak,
+            
             lastSolverUserId: existingState?.lastSolverUserId || null,
             lastBreakerUserId: existingState?.lastBreakerUserId || null,
+            
             currentProblem: problem,
             correctAnswer: answer,
         });
 
-        // Create the embed, then send it
         const problemEmbed = new EmbedBuilder()
             .setColor(embedColor)
-            .setTitle(`Current Streak: ${currentStreak}`)
-            .setDescription(`\n# ${problem}`);
+            .setTitle(`Math Challenge: Streak ${currentStreak}`)
+            .setDescription(`**Difficulty:** ${tier.name}\n\nWhat is the answer to:\n\n# ${problem}`);
             
         await Hexley.frameworks.discord.sendMessageToChannel(channelId, { embeds: [problemEmbed] });
         Hexley.log(`${Hexley.frameworks.aurora.colorText('[mathematics/newProblem]', this.moduleColor)} New problem posted: ${problem} = ${answer}.`);
-        // Yes we log it to console, for now anyways. moduleDebug is a feature soon
+
+        // Apply input throttling lock for 2 seconds (Requirement #3)
+        this.isSolvingLocked = true;
+        setTimeout(() => {
+            this.isSolvingLocked = false;
+        }, THROTTLE_LOCK_MS);
     },
 
     /**
      * Resets the 'breaksCount' for all users in the specified channel.
      */
     async _resetAllBreaks(Hexley: any, channelId: string) {
-        if (!Hexley.databaseLoaded) return;
+        if (!Hexley.resources.framework.database.isLoaded) return;
         
         const allUsers = await Hexley.frameworks.database.getAll(mathematicsUserStatsTable);
         
@@ -325,7 +363,6 @@ export const mathematics = {
     
     /**
      * Calculates the XP to gain based on the current streak level.
-     * Mirrored from Counting logic but applied to math tiers.
      */
     _calculateXpGain(streak: number): number {
         const baseGain = 1;
@@ -338,8 +375,8 @@ export const mathematics = {
      */
     _calculateXpLoss(streak: number): number {
         const baseLoss = 5;
-        const bonusLoss = Math.floor(streak / 10);
-        return baseLoss + bonusLoss;
+        const bonusGain = Math.floor(streak / 10);
+        return baseLoss + bonusGain;
     },
     
     /**
@@ -352,8 +389,16 @@ export const mathematics = {
         }
 
         const content = message.content.trim();
-        if (!/^\d+$/.test(content)) return;
+        if (!/^\d+$/.test(content)) return; 
 
+        // Check global throttling lock
+        if (this.isSolvingLocked) {
+             return;
+        }
+
+        // Implement a basic first-come-first-serve lock immediately upon receiving a valid answer format
+        this.isSolvingLocked = true; 
+        
         // Remove expired particip cooldowns
         const expiredParticipateCooldown = await Hexley.frameworks.cooldown.findExpiredCooldown(Hexley, message.author.id, 'math_cannot_particip');
         if (expiredParticipateCooldown) {
@@ -369,10 +414,16 @@ export const mathematics = {
         const submittedAnswer = parseInt(content, 10);
         let gameState = await Hexley.frameworks.database.get(mathematicsTable, { channelId });
 
-        if (!gameState || gameState.currentProblem === '0') return;
+        // Ensure the game is active AND the problem hasn't been solved in the database yet.
+        if (!gameState || gameState.currentProblem === '0' || gameState.correctAnswer === 0) {
+            // Problem already solved by another message processed before this one.
+            this.isSolvingLocked = false; // Release local lock if problem is already gone
+            return;
+        }
 
         const isParticipationCooledDown = await Hexley.frameworks.cooldown.checkCooldown(Hexley, message.author.id, 'math_cannot_particip');
         if (isParticipationCooledDown) {
+            this.isSolvingLocked = false; // Release lock
             return; 
         }
 
@@ -393,7 +444,7 @@ export const mathematics = {
                 await Hexley.frameworks.cooldown.clearCooldown(Hexley, message.author.id, 'math_xp_gain');
                 xpProgressToSave = 0;
                 
-                const resetMessage = `Mathematics XP cooldown for **${message.member?.displayName}** has ended, their streak progress has been reset!`;
+                const resetMessage = `Mathematics XP cooldown for **${message.member?.displayName}** has ended, their cooldown progress has been reset!`;
                 const sentResetMsg = await Hexley.frameworks.discord.sendMessageToChannel(channelId, resetMessage);
                 if (sentResetMsg) {
                     setTimeout(() => sentResetMsg.delete(), 5000);
@@ -424,7 +475,7 @@ export const mathematics = {
                 }
             }
             
-            // Update global game state
+            // Update global game state (Clears the answer, locking the game definitively)
             const newStreak = gameState.currentStreak + 1;
             const newHighStreak = Math.max(gameState.highStreak, newStreak);
             
@@ -444,6 +495,9 @@ export const mathematics = {
                 breaksCount: breakCount,
                 xpProgressCount: xpProgressToSave
             });
+
+            // Wait before posting the next problem
+            await this._delay(INTER_PROBLEM_DELAY_MS);
             
             // Post the next problem
             await this._postNewProblem(Hexley, channelId, newStreak);
@@ -505,12 +559,41 @@ export const mathematics = {
                 correctAnswer: 0
             });
             
+            // Wait before posting the next problem
+            await this._delay(INTER_PROBLEM_DELAY_MS);
+            
             // Start the next game
             await this._postNewProblem(Hexley, channelId, 0);
             return;
         }
     },
     
+    /**
+     * Handles the /nextmath admin command.
+     */
+    async handleNextMath(Hexley: any, interaction: any) {
+        if (!this._isAdmin(interaction.member)) {
+            return interaction.reply({ content: 'You do not have permission to use this command.', flags: MessageFlags.Ephemeral });
+        }
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+        const channelId = Hexley.modules.mathematics.config.MATH_CHANNEL_ID;
+        let gameState = await Hexley.frameworks.database.get(mathematicsTable, { channelId });
+
+        if (!gameState || gameState.currentProblem === '0') {
+             return interaction.editReply('The math game is not currently active or is awaiting its first problem.');
+        }
+
+        const oldProblem = gameState.currentProblem;
+        const oldAnswer = gameState.correctAnswer;
+        const currentStreak = gameState.currentStreak;
+        
+        // Post the new problem, preserving the current streak
+        await this._postNewProblem(Hexley, channelId, currentStreak);
+
+        await interaction.editReply(`Successfully skipped the problem: **${oldProblem}** (Answer: ${oldAnswer}). Posting new problem, we are still on Problem **${currentStreak}**.`);
+    },
+
     /**
      * Handles the /mathematics command to display game stats.
      */
@@ -562,24 +645,24 @@ export const mathematics = {
             .setTitle('Mathematics Mini-game Stats')
             .setDescription(`Solve math problems to earn XP! The current streak determines problem difficulty.`)
             .addFields(
-                { name: 'Highest Solved Streak', value: `${highStreak}`, inline: true },
-                { name: 'Difficulty', value: `${tier.name}`, inline: true },
-                { name: '\u200B', value: '\u200B', inline: true }, // Spacer
+                { name: 'Current Problem', value: `**${currentProblem}**`, inline: false },
+                { name: 'Highest Solved Streak', value: `${highStreak}`, inline: false },
+                { name: 'Difficulty', value: `${tier.name}`, inline: false },
+                { name: '\u200B', value: '\u200B', inline: false },
 
-                { name: 'Next Reward', value: `${xpGain} XP`, inline: true },
-                { name: 'Penalty on Failure', value: `${xpLoss} XP`, inline: true },
-                { name: '\u200B', value: '\u200B', inline: true }, // Spacer
+                { name: 'Next Reward', value: `${xpGain} XP`, inline: false },
+                { name: 'Penalty on Failure', value: `${xpLoss} XP`, inline: false },
 
-                { name: 'Last Solver', value: lastSolverName, inline: true },
-                { name: 'Last Breaker', value: lastBreakerName, inline: true },
+                { name: 'Last Solver', value: lastSolverName, inline: false },
+                { name: 'Last Breaker', value: lastBreakerName, inline: false },
 
                 { name: `**User Stats for ${memberDisplayName}**`, value: '', inline: false },
-                { name: 'Can Participate?', value: canParticipateText, inline: true },
-                { name: 'XP Cooldown Active?', value: xpCooldownText, inline: true }, // NEW
-                { name: 'Total Solved', value: userSolved.toLocaleString(), inline: true },
+                { name: 'Can Participate?', value: canParticipateText, inline: false },
+                { name: 'XP Cooldown Active?', value: xpCooldownText, inline: false },
+                { name: 'Total Solved', value: userSolved.toLocaleString(), inline: false },
 
-                { name: 'XP Cooldown Progress', value: `Progress: ${userXpProgress}/${XP_PROGRESS_LIMIT}`, inline: true },
-                { name: 'Break Cooldown Progress', value: `Breaks: ${userBreaks}/${BREAK_LIMIT}`, inline: true }
+                { name: 'XP Cooldown Progress', value: `Progress: ${userXpProgress}/${XP_PROGRESS_LIMIT}`, inline: false },
+                { name: 'Break Cooldown Progress', value: `Breaks: ${userBreaks}/${BREAK_LIMIT}`, inline: false }
             )
             .setTimestamp()
             .setFooter({ text: `Current Streak: ${currentStreak}` });

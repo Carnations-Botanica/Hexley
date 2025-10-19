@@ -11,9 +11,6 @@ export const exampleFramework = {
      */
     initializeExample(Hexley: any) {
         Hexley.log(`${Hexley.frameworks.aurora.colorText('[exampleFramework/initializeExample]', this.frameworkColor)} Initializing...`);
-
-
-        
         Hexley.log(`${Hexley.frameworks.aurora.colorText('[exampleFramework/initializeExample]', this.frameworkColor)} Initialized! Example Framework is now loaded into memory.`);
     },
     

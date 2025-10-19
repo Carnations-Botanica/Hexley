@@ -11,7 +11,7 @@
 	<key>Framework Description</key>
 	<string>Provides Hexley a database for storing information!</string>
 	<key>Framework Version</key>
-	<string>1.0.0</string>
+	<string>2.0.2</string>
 	<key>Framework Identifier</key>
 	<string>hex.carnations.databaseFramework</string>
 	<key>Framework Structure</key>

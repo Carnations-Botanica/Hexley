@@ -1,0 +1,69 @@
+
+export const mathematics = {
+    description: 'Displays the current state and statistics of the Mathematics Mini-game.',
+    extendedDescription: 'The mathematics command displays the current streak, difficulty, problem, and participant information in the Hexley shell.',
+
+    /**
+     * Main entry point for the mathematics command.
+     * @param {any} Hexley - The main Hexley global object.
+     * @param {string[]} args - The arguments passed to the command.
+     */
+    async main(Hexley: any, args: string[]) {
+        const { aurora, database, discord } = Hexley.frameworks;
+        const mathModule = Hexley.modules.mathematics;
+        
+        if (!mathModule) {
+            console.log(aurora.colorText('Error: Mathematics module is not loaded.', aurora.tintRed));
+            return;
+        }
+
+        // Get the internal table definition and channel ID
+        const mathTableDef = mathModule.mathematicsTable;
+        const channelId = mathModule.config.MATH_CHANNEL_ID;
+        
+        let gameState = await database.get(mathTableDef, { channelId });
+
+        if (!gameState || gameState.currentProblem === '0') {
+             console.log(aurora.colorText('\nThe Mathematics game is currently inactive or awaiting its first problem.', aurora.tintYellow));
+             return;
+        }
+
+        const { currentStreak, highStreak, lastSolverUserId, lastBreakerUserId, currentProblem } = gameState;
+        
+        // Fetch external data points and calculate rewards
+        const tier = mathModule._getTier(currentStreak);
+        const xpGain = mathModule._calculateXpGain(currentStreak);
+        const xpLoss = mathModule._calculateXpLoss(currentStreak);
+
+        // Fetch display names
+        const lastSolverName = lastSolverUserId 
+            ? (await discord.getGuildMember(lastSolverUserId))?.displayName || lastSolverUserId
+            : 'N/A';
+        const lastBreakerName = lastBreakerUserId 
+            ? (await discord.getGuildMember(lastBreakerUserId))?.displayName || lastBreakerUserId
+            : 'N/A';
+
+
+        console.log(aurora.colorText('\nMathematics Mini-game Information', aurora.tintGreen));
+        
+        // Game State
+        console.log(aurora.colorText(`  Current Streak: `, aurora.tintGray) + `${currentStreak}`);
+        console.log(aurora.colorText(`  Highest Streak: `, aurora.tintGray) + `${highStreak}`);
+        console.log(aurora.colorText(`  Difficulty:     `, aurora.tintGray) + `${tier.name}`);
+        
+        // Current Problem
+        console.log(aurora.colorText(`\n  Current Problem:`, aurora.tintGreen));
+        console.log(aurora.colorText(`    -> `, aurora.tintBlue) + `${currentProblem}`);
+
+        // Rewards/Penalties
+        console.log(aurora.colorText(`\n  Rewards/Penalties:`, aurora.tintGreen));
+        console.log(aurora.colorText(`  Current Reward:    `, aurora.tintGray) + `${xpGain} XP`);
+        console.log(aurora.colorText(`  Current Penalty:`, aurora.tintGray) + `${xpLoss} XP`);
+
+        // Participants
+        console.log(aurora.colorText(`\n  Last Activity:`, aurora.tintGreen));
+        console.log(aurora.colorText(`  Last Solver:    `, aurora.tintGray) + `${lastSolverName}`);
+        console.log(aurora.colorText(`  Last Breaker:   `, aurora.tintGray) + `${lastBreakerName}`);
+    }
+
+};

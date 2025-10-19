@@ -35,7 +35,7 @@ export const registryFramework = {
     globalRegistryBuffer: [] as EntryInfo[],
 
     // Framework Logging Color
-    registryColor: "#f9ff82",
+    registryColor: "#0091AD",
 
     // Module-scoped reference to the Hexley global object
     _Hexley: null as any | null,
@@ -49,16 +49,12 @@ export const registryFramework = {
         this._Hexley = Hexley;
 
         Hexley.log(`${Hexley.frameworks.aurora.colorText('[registryFramework/initializeRegistry]', this.registryColor)} Initializing...`);
-        Hexley.registryLoaded = true;
 
-        // Emit a ready event to register all previously waiting frameworks
-        Hexley.log(`${Hexley.frameworks.aurora.colorText('[registryFramework/initializeRegistry]', this.registryColor)} Notifying the system we're initializing...`);
-        Hexley.core.emit('registryFramework.ready');
-        
         // The Registry registers itself using its own info.plist
         const plistPath = path.join(Hexley.privateFrameworksRootPath, 'registryFramework', 'info.plist');
-        this.addEntryByPlist(Hexley, plistPath);
-        
+        await this.addEntryByPlist(Hexley, plistPath);
+        Hexley.resources.framework.registry!.isLoaded = true;
+
         Hexley.log(`${Hexley.frameworks.aurora.colorText('[registryFramework/initializeRegistry]', this.registryColor)} Initialized! The Registry is now accepting requests.`);
     },
 
@@ -165,7 +161,8 @@ export const registryFramework = {
         this.globalRegistryBuffer.push(entryInfo);
 
         // Automatically add the version to the version framework
-        if (Hexley.versionLoaded && entryInfo.Type && entryInfo.Version) {
+        if (Hexley.resources.framework.version.isLoaded && entryInfo.Type && entryInfo.Version) {
+            Hexley.log(`${Hexley.frameworks.aurora.colorText('[registryFramework/addToRegistry]', this.registryColor)} Requesting to add ${entryInfo['Type']} to versionTable as: ${entryInfo['Name']} (${entryInfo['Version']})`);
             await Hexley.frameworks.version.addVersionEntry(Hexley, entryInfo.Name, entryInfo.Type, entryInfo.Version);
         }
 
@@ -215,16 +212,16 @@ export const registryFramework = {
      */
     getEntryByName(entryName: string): EntryInfo | undefined {
         const H = this._Hexley;
-        if (H && H.debugMode) {
-             H.log(`${H.frameworks.aurora.colorText('[registryFramework/getEntryByName]', this.registryColor)} Searching for entry: ${entryName}`);
+        if (H && H.debugMode && H.wantDebug) {
+             H.log(H, `${H.frameworks.aurora.colorText('[registryFramework/getEntryByName]', this.registryColor)} Searching for entry: ${entryName}`);
         }
 
         const found = this.globalRegistryBuffer.find(entry => entry['Name'] === entryName);
-        if (H && H.debugMode) {
+        if (H && H.debugMode && H.wantDebug) {
             if (found) {
-                H.log(`${H.frameworks.aurora.colorText('[registryFramework/getEntryByName]', this.registryColor)} Found entry: ${entryName}`);
+                H.log(H, `${H.frameworks.aurora.colorText('[registryFramework/getEntryByName]', this.registryColor)} Found entry: ${entryName}`);
             } else {
-                 H.log(`${H.frameworks.aurora.colorText('[registryFramework/getEntryByName]', this.registryColor)} Entry not found: ${entryName}`);
+                 H.log(H, `${H.frameworks.aurora.colorText('[registryFramework/getEntryByName]', this.registryColor)} Entry not found: ${entryName}`);
             }
         }
 
@@ -253,6 +250,14 @@ export const registryFramework = {
      */
     getFrameworksCount(): number {
         return this.globalRegistryBuffer.filter(entry => entry.Type === 'Framework').length;
+    },
+
+    /**
+     * Gets the current count of kernels in the registry.
+     * @returns {number} The number of registered kernels.
+     */
+    getKernelsCount(): number {
+        return this.globalRegistryBuffer.filter(entry => entry.Type === 'Kernel').length;
     },
     
     /**

@@ -38,7 +38,7 @@ export const verbose = {
         
         Hexley.log(`${Hexley.frameworks.aurora.colorText('[verbose/verboseInit]', this.moduleColor)} Initializing verbose Module...`);
 
-        if (Hexley.discordLoaded) {
+        if (Hexley.resources.framework.discord.isLoaded) {
             const FOCUS_ENABLED =  true;
 
             Hexley.frameworks.discord.client.on(Events.MessageCreate, async (message: Message) => {

@@ -49,12 +49,11 @@ export const experienceFramework = {
             Hexley.log(`${Hexley.frameworks.aurora.colorText('[experienceFramework]', Hexley.frameworks.aurora.tintRed)} Could not load ranks.json: ${error.message}`);
         }
         
-        if (Hexley.databaseLoaded) {
+        if (Hexley.resources.framework.database.isLoaded) {
             await Hexley.frameworks.database.initTable(xpTable);
 
             const hexleyId = process.env.HEXLEY_USER_ID;
             if (hexleyId) {
-                // The 'get' function now expects the 'where' object directly.
                 const hexleyEntry = await Hexley.frameworks.database.get(xpTable, { userId: hexleyId });
                 if (!hexleyEntry) {
                     Hexley.log(`${Hexley.frameworks.aurora.colorText('[experienceFramework]', this.frameworkColor)} Seeding table with Hexley's user ID...`);
@@ -62,11 +61,7 @@ export const experienceFramework = {
                 }
             }
 
-            Hexley.core.once('registryFramework.ready', () => {
-                const plistPath = path.join(Hexley.privateFrameworksRootPath, 'experienceFramework', 'info.plist');
-                Hexley.frameworks.registry.addEntryByPlist(Hexley, plistPath);
-            });
-
+            Hexley.resources.framework.experience.isLoaded = true;
             Hexley.log(`${Hexley.frameworks.aurora.colorText('[experienceFramework]', this.frameworkColor)} Initialized!`);
         } else {
             Hexley.log(`${Hexley.frameworks.aurora.colorText('[experienceFramework]', Hexley.frameworks.aurora.tintYellow)} Database is not loaded. Experience system will be unavailable.`);
@@ -80,7 +75,7 @@ export const experienceFramework = {
      * @returns {Promise<number>} The user's current XP.
      */
     async getXP(Hexley: any, userId: string): Promise<number> {
-        if (!Hexley.databaseLoaded) return 0;
+        if (!Hexley.resources.framework.database.isLoaded) return 0;
         
         let userEntry = await Hexley.frameworks.database.get(xpTable, { userId: userId });
 
@@ -99,7 +94,7 @@ export const experienceFramework = {
      * @returns {Promise<any[]>} An array of all user XP objects.
      */
     async getAllXp(Hexley: any): Promise<any[]> {
-        if (!Hexley.databaseLoaded) return [];
+        if (!Hexley.resources.framework.database.isLoaded) return [];
         return Hexley.frameworks.database.getAll(xpTable);
     },
 
@@ -110,7 +105,7 @@ export const experienceFramework = {
      * @param {number} amount - The amount of XP to set.
      */
     async setXP(Hexley: any, userId: string, amount: number) {
-        if (!Hexley.databaseLoaded) return;
+        if (!Hexley.resources.framework.database.isLoaded) return;
         const entry = { userId, xp: Math.max(0, amount) }; // Ensure XP doesn't go below 0
         await Hexley.frameworks.database.upsert(xpTable, entry);
     },
@@ -149,7 +144,7 @@ export const experienceFramework = {
      * @returns {Promise<{success: boolean, message: string, giverNewXp?: number, receiverNewXp?: number}>} An object indicating the result of the transaction.
      */
     async giftXP(Hexley: any, giverId: string, receiverId: string, amount: number): Promise<{success: boolean, message: string, giverNewXp?: number, receiverNewXp?: number}> {
-        if (!Hexley.databaseLoaded) {
+        if (!Hexley.resources.framework.database.isLoaded) {
             return { success: false, message: "The experience system is currently unavailable." };
         }
 

@@ -18,7 +18,7 @@ export const xp = {
         
         Hexley.log(`${Hexley.frameworks.aurora.colorText('[xp/xpInit]', this.moduleColor)} Initializing XP Module...`);
 
-        if (Hexley.discordLoaded) {
+        if (Hexley.resources.framework.discord.isLoaded) {
             Hexley.frameworks.discord.client.on(Events.InteractionCreate, async (interaction: Interaction) => {
                 if (!interaction.isChatInputCommand()) return;
 

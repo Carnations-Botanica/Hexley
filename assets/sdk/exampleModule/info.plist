@@ -29,10 +29,14 @@
 	</dict>
 	<key>Module Settings</key>
 	<dict>
+		<key>enabled</key>
+		<true/>
+		<key>binSupport</key>
+		<true/>
 		<key>moduleEntryPoint</key>
 		<string>exampleModuleStart</string>
-		<key>canUseDiscord</key>
-		<true/>
+		<key>depsOn</key>
+		<string>discordFramework, exampleFramework</string>
 		<key>hasPreviousInit</key>
 		<false/>
 		<key>debugMode</key>
