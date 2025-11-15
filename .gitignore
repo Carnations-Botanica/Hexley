@@ -41,6 +41,7 @@ commit.sh
 bun.lockb
 vfs/var/log/hexleyCore-*.log
 vfs/home/royalgraphx/*
+vfs/home/sooly/*
 vfs/var/db.json
 vfs/etc/passwd
 vfs/var/www/server.crt

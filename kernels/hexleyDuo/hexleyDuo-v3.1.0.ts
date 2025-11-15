@@ -448,3 +448,4 @@ if (Hexley.resources.framework.hexShell?.isLoaded) {
 } else {
     Hexley.log(`${Hexley.frameworks.aurora.colorText(`[hexleyCore]`, Hexley.frameworks.aurora.tintGray)} hexShell Framework was not loaded, system will run without user shell.`);
 }
+

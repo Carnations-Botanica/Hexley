@@ -1,3 +1,4 @@
+#!/bin/bash
 
 # Specifically load an environment file for the pseudo-"bootloader"
 if [ -f .env ]; then
